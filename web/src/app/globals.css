@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #fbf9f5;
+  --ink: #1c1a17;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-feature-settings: "kern", "liga", "cv02", "cv03";
+  }
+  ::selection {
+    background: #1c1a17;
+    color: #fbf9f5;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cabfa9 transparent;
+  }
+}
+
+@layer components {
+  .lf-container {
+    @apply mx-auto w-full max-w-content px-6 md:px-10;
+  }
+  .lf-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-clay-600;
+  }
+  .lf-serif {
+    font-family: var(--font-display), Georgia, serif;
+  }
+  /* Deck slide surface — 16:9 */
+  .deck-slide {
+    aspect-ratio: 16 / 9;
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium tracking-wide text-paper transition-all duration-300 hover:bg-clay-900 hover:shadow-lg hover:shadow-clay-900/20 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-transparent px-6 py-3 text-sm font-medium tracking-wide text-ink transition-all duration-300 hover:border-ink/40 hover:bg-ink/[0.03];
+  }
+}
+
+/* Thin animated underline used on nav + links */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+/* Grain-free subtle paper texture */
+.paper-texture {
+  background-image: radial-gradient(circle at 1px 1px, rgba(28, 26, 23, 0.025) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
