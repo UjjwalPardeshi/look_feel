@@ -204,7 +204,7 @@ export function Wizard() {
           }}
           onEdit={() => goto("brief")}
           renderControls={(slide, index) => (
-            <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity duration-300 group-hover/slide:opacity-100">
+            <div className="absolute left-3 top-3 flex gap-2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slide:opacity-100">
               <button
                 onClick={() => regenerate(slide, index)}
                 title="Regenerate this image"
@@ -269,8 +269,8 @@ function ResultView({
               {deck.meta.project}
             </h1>
             <p className="mt-3 text-[15px] text-ink/60">
-              <strong>{style.name}</strong> — {style.tagline.toLowerCase()}. Hover any space to
-              regenerate or swap its imagery, then export.
+              <strong>{style.name}</strong> — {style.tagline.toLowerCase()}. Regenerate or swap
+              any space&rsquo;s imagery, then export.
             </p>
             <div className="mt-5">
               <PaletteRow palette={deck.palette} size={28} gap={14} labels />

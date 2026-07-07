@@ -28,12 +28,12 @@ export function SiteNav() {
         scrolled ? "border-b border-ink/10 bg-paper/85 backdrop-blur-md" : "border-b border-transparent",
       )}
     >
-      <nav className="lf-container flex h-16 items-center justify-between md:h-[76px]">
-        <Link href="/" className="group flex items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-ink text-paper transition-transform duration-500 group-hover:rotate-[18deg]">
+      <nav className="lf-container flex h-16 items-center justify-between gap-3 md:h-[76px]">
+        <Link href="/" className="group flex min-w-0 items-center gap-2.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-paper transition-transform duration-500 group-hover:rotate-[18deg]">
             <span className="lf-serif text-sm italic">A</span>
           </span>
-          <span className="lf-serif text-lg tracking-tight text-ink">
+          <span className="lf-serif truncate text-lg tracking-tight text-ink">
             Studio Atelier
           </span>
         </Link>
@@ -50,7 +50,7 @@ export function SiteNav() {
           ))}
         </div>
 
-        <Link href="/generate" className="btn-primary !px-5 !py-2.5 text-[13px]">
+        <Link href="/generate" className="btn-primary shrink-0 whitespace-nowrap !px-4 text-[13px] sm:!px-5 sm:!py-2.5">
           Generate a deck
         </Link>
       </nav>

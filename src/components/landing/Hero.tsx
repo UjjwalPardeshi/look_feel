@@ -18,15 +18,15 @@ export function Hero({ deck }: { deck: Deck }) {
       <div className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-clay-200/40 blur-3xl" />
 
       <div className="lf-container relative grid items-center gap-14 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28">
-        <div className="animate-fade-up">
-          <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/60 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-clay-700 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" /> For design-and-build &amp; interior studios
+        <div className="min-w-0 animate-fade-up">
+          <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-ink/10 bg-white/60 px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-clay-700 backdrop-blur sm:text-[11px] sm:tracking-[0.2em]">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" /> For design-and-build &amp; interior studios
           </span>
 
-          <h1 className="lf-serif mt-6 text-[clamp(2.6rem,6vw,4.6rem)] font-normal leading-[1.02] tracking-[-0.01em] text-ink">
-            A presentation-ready
-            <br />
-            <span className="italic">look &amp; feel</span> — in under
+          <h1 className="lf-serif mt-6 text-[clamp(2.2rem,7vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.01em] text-ink [text-wrap:balance]">
+            A presentation-ready{" "}
+            <br className="hidden sm:block" />
+            <span className="italic">look &amp; feel</span> — in under{" "}
             <br className="hidden sm:block" /> two minutes.
           </h1>
 
@@ -56,7 +56,7 @@ export function Hero({ deck }: { deck: Deck }) {
         </div>
 
         {/* Live output preview */}
-        <div className="relative animate-fade-in [animation-delay:200ms]">
+        <div className="relative min-w-0 animate-fade-in [animation-delay:200ms]">
           <div className="relative mx-auto max-w-[520px]">
             <div className="absolute -right-4 top-10 w-[78%] rotate-[4deg] opacity-90 blur-[0.3px]">
               <ScaledSlide>
