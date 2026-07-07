@@ -2,24 +2,23 @@
 
 **Automated, presentation-ready look & feel decks for design-and-build firms — in under two minutes.**
 
-This is a working implementation of the product described in
-[`PRD_Look_and_Feel_Generator.docx`](./PRD_Look_and_Feel_Generator.docx): a web tool that
-turns a client brief and a list of the project's spaces into a personalised,
-space-by-space look & feel deck, exportable to **PPTX** and **PDF** — structured
-exactly like the reference presentation
-(`Look & Feel Soumya Jain 09-06-2026.pptx`): cover → design concept → mood &
-materials → space-by-space references → next steps.
+A working implementation of the product described in the PRD
+([`reference/PRD_Look_and_Feel_Generator.docx`](./reference/PRD_Look_and_Feel_Generator.docx)):
+a web tool that turns a client brief and a list of the project's spaces into a
+personalised, space-by-space look & feel deck, exportable to **PPTX** and
+**PDF** — structured exactly like the reference presentation
+(`reference/Look & Feel Soumya Jain 09-06-2026.pptx`): cover → design concept →
+mood & materials → space-by-space references → next steps.
 
-Built with **Next.js (App Router) + TypeScript + Tailwind CSS**.
-
-The app lives in [`web/`](./web).
+Built with **Next.js (App Router) + TypeScript + Tailwind CSS**. The Next app
+lives at the repository root, so it deploys to **Vercel with zero configuration**
+(auto-detected framework, no Root Directory setting required).
 
 ---
 
 ## Quick start
 
 ```bash
-cd web
 npm install
 npm run dev        # http://localhost:3000
 ```
@@ -27,11 +26,24 @@ npm run dev        # http://localhost:3000
 Production build:
 
 ```bash
-cd web
 npm run build && npm run start
 ```
 
 Type-check only: `npm run typecheck`.
+
+## Deploy to Vercel
+
+Import the repo in Vercel and deploy — nothing else to configure:
+
+- **Framework preset:** Next.js (auto-detected)
+- **Root Directory:** `./` (repo root — leave as default)
+- **Build command / Output:** defaults (`next build` → `.next`)
+
+The reference decks under `reference/` are excluded from deployments via
+[`.vercelignore`](./.vercelignore).
+
+> If you previously set the project's **Root Directory** to `web` in the Vercel
+> dashboard, reset it to `./` (repo root) — the app now lives at the root.
 
 ---
 
@@ -63,17 +75,13 @@ Brief ──▶ buildDeck() ──▶ Deck ──┬──▶ <DeckViewer/>   (o
 
 - **Design directions** (`styles.ts`) — each is a complete identity (palette,
   materials, lighting, design language) so a deck reads as one vision, not 15
-  unrelated images (PRD §9, style consistency).
+  unrelated images.
 - **Copy engine** (`copy.ts`) — deterministic, reference-voiced prose per space.
 - **Imagery** (`imagery.ts`) — curated interior photos tagged by visual
   temperature and biased to the chosen direction, with a palette-gradient
   fallback so the UI never shows a broken image. This layer is the seam where a
-  real AI image-generation engine drops in (PRD §4.1).
+  real AI image-generation engine drops in.
 
-## Notes
-
-- v1 is intentionally scoped per the PRD: **no CAD/floor-plan parsing, no 3D**,
-  no accounts/billing. Spaces are chosen from a checklist.
-- Everything runs client-side; no backend or API keys required to try it.
-- Imagery uses licensed/free interior photography as a stand-in for the
-  generation engine — no scraping, matching the PRD's copyright-safe approach.
+Everything runs client-side; no backend or API keys required to try it.
+Image export uses direct `<img>` fetches (not `next/image`) so a deck of
+10–15 references never hits Vercel's image-optimizer quota.

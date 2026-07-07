@@ -1,3 +1,5 @@
+"use client";
+
 import type { Deck, Swatch } from "../types";
 import { getStyle } from "../styles";
 import { resolveDeckImages } from "./imageData";

@@ -1,0 +1,5 @@
+# Reference source material — not part of the deployed app.
+reference/
+*.pdf
+*.pptx
+*.docx
