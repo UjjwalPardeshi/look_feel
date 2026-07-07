@@ -31,10 +31,10 @@ export function SiteNav() {
       <nav className="lf-container flex h-16 items-center justify-between gap-3 md:h-[76px]">
         <Link href="/" className="group flex min-w-0 items-center gap-2.5">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-paper transition-transform duration-500 group-hover:rotate-[18deg]">
-            <span className="lf-serif text-sm italic">A</span>
+            <span className="lf-serif text-base italic">&amp;</span>
           </span>
           <span className="lf-serif truncate text-lg tracking-tight text-ink">
-            Studio Atelier
+            Look &amp; Feel
           </span>
         </Link>
 

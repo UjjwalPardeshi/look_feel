@@ -22,7 +22,7 @@ import {
   formatDeckDate,
 } from "../copy";
 
-const FIRM = "Studio Atelier";
+const FIRM = "Look & Feel";
 
 /** Merge brand colours into the style palette without breaking coherence. */
 export function buildPalette(styleId: string, brandColors: string[]): Swatch[] {
@@ -143,7 +143,7 @@ export function buildDeck(brief: Brief, date: Date): Deck {
     kind: "closing",
     firm: FIRM,
     message: closingMessage(style),
-    contact: "hello@studioatelier.design  ·  studioatelier.design",
+    contact: "hello@lookandfeel.studio  ·  lookandfeel.studio",
   });
 
   return {

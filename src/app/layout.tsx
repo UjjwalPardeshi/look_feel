@@ -18,7 +18,7 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Studio Atelier — Look & Feel Generator",
+  title: "Look & Feel — Presentation-Ready Design Decks",
   description:
     "Turn a client brief and a list of spaces into a presentation-ready, space-by-space look & feel deck in under two minutes. Built for design-and-build firms.",
   keywords: [
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "AI interior design",
   ],
   openGraph: {
-    title: "Studio Atelier — Look & Feel Generator",
+    title: "Look & Feel — Presentation-Ready Design Decks",
     description:
       "Presentation-ready, space-by-space look & feel decks in under two minutes.",
     type: "website",

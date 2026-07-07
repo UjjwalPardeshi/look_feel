@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { Wizard } from "@/components/wizard/Wizard";
 
 export const metadata: Metadata = {
-  title: "Generate a Look & Feel Deck — Studio Atelier",
+  title: "Generate a Deck — Look & Feel",
   description:
     "Input a brief, define the project's spaces, and generate a presentation-ready look & feel deck in under two minutes.",
 };

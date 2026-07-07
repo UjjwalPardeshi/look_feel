@@ -10,7 +10,7 @@ import { buildSampleDeck } from "@/lib/deck/sample";
 import { getStyle } from "@/lib/styles";
 
 export const metadata: Metadata = {
-  title: "Sample Look & Feel Deck — Studio Atelier",
+  title: "Sample Deck — Look & Feel",
   description: "A complete, space-by-space look & feel deck generated from a brief.",
 };
 
