@@ -31,8 +31,25 @@ const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const VALID_CATEGORIES = new Set(SPACE_TYPES.map((s) => s.category));
 const VALID_STYLES = new Set(STYLE_DIRECTIONS.map((s) => s.id));
 
+/**
+ * Resolve the Blob store token. Vercel names the env var BLOB_READ_WRITE_TOKEN
+ * by default, but connecting a store under a custom prefix (often derived from
+ * the store name) produces {PREFIX}_READ_WRITE_TOKEN instead — accept any env
+ * var that holds a Blob read-write token so setup "just works".
+ */
+function blobToken(): string | undefined {
+  const direct = process.env.BLOB_READ_WRITE_TOKEN;
+  if (direct) return direct;
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_READ_WRITE_TOKEN") && value?.startsWith("vercel_blob_rw_")) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 function configured(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  return Boolean(blobToken());
 }
 
 function hash16(input: string | Buffer): string {
@@ -80,7 +97,7 @@ async function listAll(): Promise<LibraryImage[]> {
   const images: LibraryImage[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < LIST_MAX_PAGES; page++) {
-    const res = await list({ prefix: LIBRARY_PREFIX, limit: LIST_PAGE_LIMIT, cursor });
+    const res = await list({ prefix: LIBRARY_PREFIX, limit: LIST_PAGE_LIMIT, cursor, token: blobToken() });
     for (const blob of res.blobs) {
       const img = toLibraryImage(blob);
       if (img) images.push(img);
@@ -227,6 +244,7 @@ export async function POST(request: NextRequest) {
           contentType: p.contentType,
           addRandomSuffix: false,
           allowOverwrite: true,
+          token: blobToken(),
         });
         added.push({
           url: blob.url,
@@ -293,7 +311,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Not a library asset" }, { status: 400 });
   }
   try {
-    await del(body.url as string);
+    await del(body.url as string, { token: blobToken() });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("library delete failed:", err);
