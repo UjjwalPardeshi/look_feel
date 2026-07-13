@@ -3,6 +3,7 @@
 import { Check, Minus, Plus } from "lucide-react";
 import type { Brief, SelectedSpace } from "@/lib/types";
 import { SPACE_TYPES } from "@/lib/spaces";
+import { LayoutUpload } from "./LayoutUpload";
 import { cn } from "@/lib/cn";
 
 export function SpacesStep({
@@ -33,10 +34,13 @@ export function SpacesStep({
 
   return (
     <div>
+      <LayoutUpload brief={brief} onChange={onChange} />
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-lg text-[14px] text-ink/55">
-          Select the spaces in this project and set how many of each. The deck is
-          built around exactly these rooms — one or two reference pages per space.
+          Select the spaces in this project and set how many of each — or upload
+          a layout above and let the plan pick them. One or two reference pages
+          per space.
         </p>
         <div className="rounded-full bg-clay-50 px-4 py-2 text-[13px] font-medium text-clay-700 ring-1 ring-clay-200">
           {brief.spaces.length} space types · {totalSlides + 4} slides

@@ -16,9 +16,11 @@
     "jspdf": "^4.2.1",
     "lucide-react": "0.469.0",
     "next": "^15.5.20",
+    "pdfjs-dist": "6.1.200",
     "pptxgenjs": "3.12.0",
     "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react-dom": "19.0.0",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@types/node": "22.10.7",

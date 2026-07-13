@@ -94,6 +94,25 @@ per-image generation spend.
 
 ---
 
+## Layout upload → automatic space detection
+
+Upload the project's floor plan on the "spaces" step (PDF or PNG/JPG/WEBP) and
+the checklist selects itself:
+
+- **CAD-exported PDFs** carry a text layer, so detection is deterministic —
+  room labels, quantities (`EXECUTIVE CABIN - 1…4` → ×4), seat counts
+  (`MEETING ROOM 10 PAX` → "6–10 pax") and the sheet title (fills the project
+  name) are read exactly.
+- **Scanned plans / images** are OCR'd in high-resolution overlapping tiles
+  (tesseract, sparse-text mode) — best-effort but strong at high resolution,
+  and every result stays editable.
+- Infrastructure on the plan (lifts, stairwells, server rooms, ducts…) is
+  listed for transparency but never becomes a deck slide.
+- Parsing runs entirely in the browser — **client floor plans never leave the
+  designer's machine**.
+
+---
+
 ## What it does (mapped to the PRD)
 
 | PRD requirement | Where it lives |
@@ -101,6 +120,7 @@ per-image generation spend.
 | **Home page** demonstrating the product | `src/app/page.tsx` + `src/components/landing/*` |
 | Step 1 — **Input the brief** (style, brand colours, budget, industry, notes) | `src/components/wizard/BriefStep.tsx` |
 | Step 2 — **Define the spaces** (checklist with quantities) | `src/components/wizard/SpacesStep.tsx` |
+| **Layout upload → automatic space detection** (PDF/image) | `src/lib/layout/*` + `src/components/wizard/LayoutUpload.tsx` |
 | Step 3 — **Generate the deck** (cover, narrative, space-by-space) | `src/lib/deck/build.ts`, `src/components/deck/*` |
 | **One coherent design direction** across all spaces | `src/lib/styles.ts` + tone-aware imagery in `src/lib/imagery.ts` |
 | **AI-image-ready** sourcing (pluggable) | `src/lib/imagery.ts` (curated, license-safe stand-in; swap in a generation API) |
