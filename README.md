@@ -50,10 +50,17 @@ The reference decks under `reference/` are excluded from deployments via
 The library stores every generated/uploaded reference in **Vercel Blob** so the
 whole team reuses imagery across clients instead of regenerating it:
 
-1. Vercel dashboard → your project → **Storage → Create Database → Blob**.
-2. Connect the store to this project — the `BLOB_READ_WRITE_TOKEN` env var is
-   added automatically.
+1. Vercel dashboard → your project → **Storage → Create Database → Blob**, and
+   connect it to the project (Production + Preview).
+2. Add a **`BLOB_READ_WRITE_TOKEN`** environment variable holding the store's
+   read-write token. (Connecting a store only provisions `BLOB_STORE_ID` /
+   `BLOB_WEBHOOK_PUBLIC_KEY`, so this one is added by hand.)
 3. Redeploy.
+
+Stores are **private**, so references are never world-readable: assets are
+streamed back through an authenticated route (`/api/library/file`) and, because
+pathnames are content-addressed, cached immutably at the edge — only the first
+request per image touches the function.
 
 Without the store the app still works fully (decks generate from the built-in
 pool); the `/library` page shows these setup steps until it's connected. For

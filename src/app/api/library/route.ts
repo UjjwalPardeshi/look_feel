@@ -124,15 +124,7 @@ async function listAll(): Promise<LibraryImage[]> {
 
 export async function GET() {
   if (!configured()) {
-    // Names only (never values): helps diagnose store-connection issues.
-    const envKeys = Object.keys(process.env).filter(
-      (k) => k.includes("BLOB") || k.endsWith("_READ_WRITE_TOKEN"),
-    );
-    return NextResponse.json({
-      configured: false,
-      images: [],
-      diag: { envKeys, oidc: Boolean(process.env.VERCEL_OIDC_TOKEN) },
-    });
+    return NextResponse.json({ configured: false, images: [] });
   }
   try {
     const images = await listAll();
@@ -251,7 +243,6 @@ export async function POST(request: NextRequest) {
 
   const added: LibraryImage[] = [];
   const failures: string[] = [];
-  const failureReasons: string[] = [];
   let cursor = 0;
   async function worker() {
     while (cursor < toStore.length) {
@@ -280,8 +271,6 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error(`library ingest failed for ${p.pathname}:`, err);
         failures.push(p.pathname);
-        const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-        if (!failureReasons.includes(reason)) failureReasons.push(reason);
       }
     }
   }
@@ -293,9 +282,7 @@ export async function POST(request: NextRequest) {
     configured: true,
     added,
     existing,
-    ...(failures.length > 0
-      ? { failed: failures.length, reasons: failureReasons.slice(0, 3) }
-      : {}),
+    ...(failures.length > 0 ? { failed: failures.length } : {}),
   });
 }
 
