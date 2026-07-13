@@ -114,7 +114,11 @@ async function listAll(): Promise<LibraryImage[]> {
 
 export async function GET() {
   if (!configured()) {
-    return NextResponse.json({ configured: false, images: [] });
+    // Names only (never values): helps diagnose store-connection issues.
+    const envKeys = Object.keys(process.env).filter(
+      (k) => k.includes("BLOB") || k.endsWith("_READ_WRITE_TOKEN"),
+    );
+    return NextResponse.json({ configured: false, images: [], diag: { envKeys } });
   }
   try {
     const images = await listAll();
