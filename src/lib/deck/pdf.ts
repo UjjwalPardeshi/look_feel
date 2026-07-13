@@ -224,7 +224,7 @@ export async function exportPdf(
       const img = await coverCrop(raw(s.image.src), imgW, PH);
       if (img) doc.addImage(img, "JPEG", PW - imgW, 0, imgW, PH);
       const colW = PW - imgW - M - 0.5 * U;
-      eyebrow(doc, "Design Concept", M, 0.72 * U);
+      eyebrow(doc, s.optionLabel ? `${s.optionLabel} — Design Concept` : "Design Concept", M, 0.72 * U);
       doc.setFont("times", "italic");
       doc.setFontSize(fpx(32));
       setText(doc, INK);
@@ -264,7 +264,7 @@ export async function exportPdf(
       page();
       setFill(doc, PAPER);
       doc.rect(0, 0, PW, PH, "F");
-      eyebrow(doc, "Mood & Materials", M, 0.72 * U);
+      eyebrow(doc, s.optionLabel ? `${s.optionLabel} — Mood & Materials` : "Mood & Materials", M, 0.72 * U);
       doc.setFont("times", "italic");
       doc.setFontSize(fpx(30));
       setText(doc, INK);
@@ -312,7 +312,7 @@ export async function exportPdf(
       if (hero) doc.addImage(hero, "JPEG", 0, 0, heroW, PH);
       const cx = heroW + 0.45 * U;
       const cw = PW - cx - M;
-      eyebrow(doc, `Look & Feel  /${s.index}`, cx, 0.72 * U, GOLD);
+      eyebrow(doc, `${s.optionLabel ? `${s.optionLabel} · ` : ""}Look & Feel  /${s.index}`, cx, 0.72 * U, GOLD);
       doc.setFont("times", "italic");
       doc.setFontSize(fpx(26));
       setText(doc, INK);

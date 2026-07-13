@@ -30,7 +30,10 @@ export function SpacesStep({
     setSpaces(brief.spaces.map((s) => (s.spaceId === id ? { ...s, quantity: q } : s)));
   };
 
-  const totalSlides = brief.spaces.reduce((n, s) => n + Math.max(1, Math.min(s.quantity, 8)), 0);
+  const spaceSlides = brief.spaces.reduce((n, s) => n + Math.max(1, Math.min(s.quantity, 8)), 0);
+  const concepts = Math.max(1, brief.styleIds.length);
+  // cover + contents + closing, plus per concept: concept + mood + its spaces
+  const totalSlides = 3 + concepts * (2 + spaceSlides);
 
   return (
     <div>
@@ -43,7 +46,7 @@ export function SpacesStep({
           per space.
         </p>
         <div className="rounded-full bg-clay-50 px-4 py-2 text-[13px] font-medium text-clay-700 ring-1 ring-clay-200">
-          {brief.spaces.length} space types · {totalSlides + 4} slides
+          {brief.spaces.length} space types{concepts > 1 ? ` · ${concepts} concepts` : ""} · {totalSlides} slides
         </div>
       </div>
 

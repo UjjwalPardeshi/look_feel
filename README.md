@@ -118,7 +118,8 @@ the checklist selects itself:
 | PRD requirement | Where it lives |
 | --- | --- |
 | **Home page** demonstrating the product | `src/app/page.tsx` + `src/components/landing/*` |
-| Step 1 — **Input the brief** (style, brand colours, budget, industry, notes) | `src/components/wizard/BriefStep.tsx` |
+| Step 1 — **Input the brief** (concepts, brand, budget, industry, notes) | `src/components/wizard/BriefStep.tsx` |
+| **Multi-concept decks** — Option A/B/C sections in one deck | `src/lib/deck/build.ts` (per-concept sections) |
 | Step 2 — **Define the spaces** (checklist with quantities) | `src/components/wizard/SpacesStep.tsx` |
 | **Layout upload → automatic space detection** (PDF/image) | `src/lib/layout/*` + `src/components/wizard/LayoutUpload.tsx` |
 | Step 3 — **Generate the deck** (cover, narrative, space-by-space) | `src/lib/deck/build.ts`, `src/components/deck/*` |

@@ -7,7 +7,7 @@ import { ScaledSlide } from "@/components/deck/ScaledSlide";
 import { DeckSlide } from "@/components/deck/DeckSlide";
 
 export function SampleShowcase({ deck }: { deck: Deck }) {
-  const overlay = getStyle(deck.meta.styleId).overlay;
+  const defaultOverlay = getStyle(deck.meta.styleId).overlay;
   const fallback = fallbackGradient(deck.palette);
 
   // A representative spread: concept, mood, and two space slides.
@@ -17,6 +17,10 @@ export function SampleShowcase({ deck }: { deck: Deck }) {
     deck.slides.filter((s) => s.kind === "space")[0],
     deck.slides.filter((s) => s.kind === "space")[3],
   ].filter(Boolean) as Deck["slides"];
+
+  // Slides carry their own concept; tint each with its own overlay.
+  const overlayFor = (slide: Deck["slides"][number]) =>
+    "styleId" in slide && slide.styleId ? getStyle(slide.styleId).overlay : defaultOverlay;
 
   return (
     <section id="sample" className="scroll-mt-24 py-24 md:py-32">
@@ -42,7 +46,7 @@ export function SampleShowcase({ deck }: { deck: Deck }) {
         <div className="mt-14 grid gap-6 md:grid-cols-2">
           {picks.map((slide, i) => (
             <ScaledSlide key={i}>
-              <DeckSlide slide={slide} overlay={overlay} fallback={fallback} brand={deck.meta.brand} />
+              <DeckSlide slide={slide} overlay={overlayFor(slide)} fallback={fallback} brand={deck.meta.brand} />
             </ScaledSlide>
           ))}
         </div>

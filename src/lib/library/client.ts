@@ -59,7 +59,8 @@ export async function ingestDeck(deck: Deck): Promise<number> {
       items.push({
         url: img.src,
         category: slide.category,
-        styleId: deck.meta.styleId,
+        // Tag with the slide's own concept — decks can hold several.
+        styleId: slide.styleId,
         source: "generated",
       });
     }

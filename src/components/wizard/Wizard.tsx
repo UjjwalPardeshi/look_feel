@@ -39,7 +39,7 @@ const INITIAL_BRIEF: Brief = {
   clientName: "",
   projectName: "",
   industry: "",
-  styleId: STYLE_DIRECTIONS[0].id,
+  styleIds: [STYLE_DIRECTIONS[0].id],
   budgetTier: "signature",
   brandColors: [],
   brandName: "",
@@ -112,18 +112,30 @@ export function Wizard() {
 
       const built = buildDeck(brief, new Date(), lib.images);
       const reused = countLibraryReuse(built, lib.images);
-      const spaceNames = built.slides
+      const spaceLabels = built.slides
         .filter((s): s is SpaceSlide => s.kind === "space")
-        .map((s) => s.name);
-      const labels = [
+        .map((s) =>
+          s.optionLabel
+            ? `${s.optionLabel} · ${s.name.toLowerCase()}`
+            : `Curating references · ${s.name.toLowerCase()}`,
+        );
+      const conceptNames = brief.styleIds.map((id) => getStyle(id).name);
+      let labels = [
         ...(reused > 0 ? [`Reusing ${reused} references from your library`] : []),
-        "Setting the design direction",
+        conceptNames.length > 1
+          ? `Composing ${conceptNames.length} concepts — ${conceptNames.join(", ")}`
+          : "Setting the design direction",
         "Building the palette & materials",
         "Curating the mood board",
-        ...spaceNames.map((n) => `Curating references · ${n.toLowerCase()}`),
+        ...spaceLabels,
         "Composing the narrative",
         "Assembling your deck",
       ];
+      // Multi-concept decks can have dozens of slides; keep the animation snappy.
+      if (labels.length > 16) {
+        const step = labels.length / 16;
+        labels = Array.from({ length: 16 }, (_, i) => labels[Math.floor(i * step)]);
+      }
       for (let i = 0; i < labels.length; i++) {
         if (cancelled) return;
         setProgress({ pct: (i + 1) / labels.length, label: labels[i] });
@@ -166,10 +178,10 @@ export function Wizard() {
 
   function regenerate(slide: SpaceSlide, index: number) {
     if (!deck) return;
-    const style = getStyle(deck.meta.styleId);
+    const style = getStyle(slide.styleId);
     // Library references first (on-style, same space), then the generator pool.
     const libraryUrls = library
-      .filter((li) => li.category === slide.category && li.styleId === deck.meta.styleId)
+      .filter((li) => li.category === slide.category && li.styleId === slide.styleId)
       .map((li) => li.url);
     const pool = [...new Set([...libraryUrls, ...categoryImageUrls(slide.category, style)])];
     if (pool.length === 0) return;
@@ -201,7 +213,7 @@ export function Wizard() {
         });
       }
       // Store in the shared library; if unconfigured, the local data URL still swaps in.
-      const saved = await uploadToLibrary(dataUrl, target.slide.category, deck.meta.styleId);
+      const saved = await uploadToLibrary(dataUrl, target.slide.category, target.slide.styleId);
       if (saved) {
         setLibrary((l) => [saved, ...l.filter((x) => x.pathname !== saved.pathname)]);
       }
@@ -303,7 +315,7 @@ export function Wizard() {
             open={swapTarget !== null}
             spaceLabel={swapTarget ? swapTarget.slide.qualifier ?? swapTarget.slide.name : ""}
             category={swapTarget?.slide.category ?? "workstation"}
-            styleId={deck.meta.styleId}
+            styleId={swapTarget?.slide.styleId ?? deck.meta.styleId}
             library={library}
             libraryConfigured={libraryConfigured}
             uploading={uploading}
@@ -387,6 +399,7 @@ function ResultView({
   renderControls: (slide: SpaceSlide, index: number) => React.ReactNode;
 }) {
   const style = getStyle(deck.meta.styleId);
+  const multi = deck.meta.styleIds.length > 1;
   return (
     <div className="animate-fade-up">
       <div className="mb-10 rounded-3xl border border-ink/10 bg-white/60 p-7 md:p-9">
@@ -394,13 +407,23 @@ function ResultView({
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full bg-clay-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-clay-700 ring-1 ring-clay-200">
               <Check className="h-3.5 w-3.5" /> Deck ready · {deck.slides.length} slides
+              {multi ? ` · ${deck.meta.styleIds.length} concepts` : ""}
             </span>
             <h1 className="lf-serif mt-4 text-[clamp(1.8rem,3.6vw,2.9rem)] leading-[1.06] text-ink">
               {deck.meta.project}
             </h1>
             <p className="mt-3 text-[15px] text-ink/60">
-              <strong>{style.name}</strong> — {style.tagline.toLowerCase()}. Regenerate or swap
-              any space&rsquo;s imagery, then export.
+              {multi ? (
+                <>
+                  <strong>{deck.meta.styleName}</strong> — one option per concept, same
+                  spaces. Regenerate or swap any space&rsquo;s imagery, then export.
+                </>
+              ) : (
+                <>
+                  <strong>{style.name}</strong> — {style.tagline.toLowerCase()}. Regenerate or swap
+                  any space&rsquo;s imagery, then export.
+                </>
+              )}
             </p>
             <div className="mt-5">
               <PaletteRow palette={deck.palette} size={28} gap={14} labels />

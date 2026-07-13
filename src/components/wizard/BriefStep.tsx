@@ -117,30 +117,49 @@ export function BriefStep({
         </Field>
       </div>
 
-      {/* Style direction */}
+      {/* Concepts */}
       <div>
-        <h3 className="lf-eyebrow">Design direction</h3>
+        <h3 className="lf-eyebrow">Concepts</h3>
         <p className="mt-2 text-[14px] text-ink/55">
-          Choose the mood. Every space in the deck inherits this palette, materials, and lighting.
+          Pick up to three. One concept makes the classic deck; two or three become
+          Option A / B / C sections, so the client compares them in a single deck.
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {STYLE_DIRECTIONS.map((s) => {
-            const active = brief.styleId === s.id;
+            const order = brief.styleIds.indexOf(s.id);
+            const active = order !== -1;
+            const showLetters = brief.styleIds.length > 1;
+            const toggle = () => {
+              if (active) {
+                // Keep at least one concept selected.
+                if (brief.styleIds.length === 1) return;
+                onChange({ styleIds: brief.styleIds.filter((id) => id !== s.id) });
+              } else {
+                if (brief.styleIds.length >= 3) return;
+                onChange({ styleIds: [...brief.styleIds, s.id] });
+              }
+            };
             return (
               <button
                 key={s.id}
                 type="button"
-                onClick={() => onChange({ styleId: s.id })}
+                onClick={toggle}
+                title={
+                  !active && brief.styleIds.length >= 3
+                    ? "Up to three concepts per deck — deselect one first"
+                    : undefined
+                }
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300",
                   active
                     ? "border-clay-500 bg-white shadow-[0_18px_50px_-28px_rgba(28,26,23,0.5)] ring-1 ring-clay-400"
                     : "border-ink/12 bg-white/60 hover:border-ink/25 hover:bg-white",
+                  !active && brief.styleIds.length >= 3 && "opacity-50",
                 )}
               >
                 {active && (
-                  <span className="absolute right-4 top-4 grid h-6 w-6 place-items-center rounded-full bg-clay-600 text-white">
-                    <Check className="h-3.5 w-3.5" />
+                  <span className="absolute right-4 top-4 grid h-6 w-6 place-items-center rounded-full bg-clay-600 text-[11px] font-bold text-white">
+                    {showLetters ? String.fromCharCode(65 + order) : <Check className="h-3.5 w-3.5" />}
                   </span>
                 )}
                 <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-clay-600">{s.axis}</span>
@@ -155,6 +174,12 @@ export function BriefStep({
             );
           })}
         </div>
+        {brief.styleIds.length > 1 && (
+          <p className="mt-3 text-[12.5px] text-ink/50">
+            The deck will present {brief.styleIds.length === 2 ? "two options" : "three options"} —
+            every space appears once per concept.
+          </p>
+        )}
       </div>
 
       {/* Client brand mark */}

@@ -95,7 +95,12 @@ export interface Brief {
   clientName: string;
   projectName: string;
   industry: string;
-  styleId: string;
+  /**
+   * Selected concepts (design directions), in presentation order. One is the
+   * classic deck; two or three produce Option A/B/C sections so the client can
+   * compare concepts inside a single deck.
+   */
+  styleIds: string[];
   budgetTier: BudgetTier;
   /** optional brand colours that augment the style palette */
   brandColors: string[];
@@ -134,20 +139,26 @@ export interface ContentsSlide {
 
 export interface ConceptSlide {
   kind: "concept";
+  /** the concept this section presents */
+  styleId: string;
   styleName: string;
   tagline: string;
   narrative: string[];
   designLanguage: DesignLanguageItem[];
   palette: Swatch[];
   image: DeckImage;
+  /** "Option A" etc. when the deck holds multiple concepts */
+  optionLabel?: string;
 }
 
 export interface MoodSlide {
   kind: "mood";
+  styleId: string;
   title: string;
   images: DeckImage[];
   palette: Swatch[];
   materials: Material[];
+  optionLabel?: string;
 }
 
 export interface SpaceSlide {
@@ -156,6 +167,8 @@ export interface SpaceSlide {
   name: string;
   /** category, so the UI can regenerate imagery from the right pool */
   category: SpaceCategory;
+  /** the concept whose palette/imagery this slide uses */
+  styleId: string;
   /** e.g. "Meeting Room 02" when multiple exist */
   qualifier?: string;
   hero: DeckImage;
@@ -163,6 +176,8 @@ export interface SpaceSlide {
   description: string;
   palette: Swatch[];
   index: string;
+  /** "Option A" etc. when the deck holds multiple concepts */
+  optionLabel?: string;
 }
 
 export interface ClosingSlide {
@@ -186,7 +201,11 @@ export interface DeckMeta {
   project: string;
   industry: string;
   dateLabel: string;
+  /** primary concept (first selected) — used for deck-level accents */
   styleId: string;
+  /** all concepts, in Option A/B/C order */
+  styleIds: string[];
+  /** display name; joined when the deck holds multiple concepts */
   styleName: string;
   budgetTier: BudgetTier;
   /** client brand mark rendered on every slide (preview, PPTX, PDF) */

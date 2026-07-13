@@ -37,9 +37,10 @@ export default function SamplePage() {
                 </h1>
                 <p className="mt-4 text-[16px] leading-relaxed text-ink/60">
                   A full, presentation-ready deck generated from the{" "}
-                  <strong>{style.name}</strong> direction — {style.tagline.toLowerCase()} —
-                  structured around this project&rsquo;s {deck.slides.filter((s) => s.kind === "space").length} spaces.
-                  Download it as an editable PowerPoint or a polished PDF.
+                  <strong>{deck.meta.styleName}</strong>
+                  {deck.meta.styleIds.length === 1 ? ` concept — ${style.tagline.toLowerCase()} —` : " concepts —"}{" "}
+                  structured around this project&rsquo;s spaces. Download it as an
+                  editable PowerPoint or a polished PDF.
                 </p>
                 <div className="mt-6">
                   <PaletteRow palette={deck.palette} size={30} gap={16} labels />

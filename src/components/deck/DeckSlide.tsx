@@ -107,7 +107,7 @@ export function DeckSlide({ slide, overlay, fallback, brand, controls }: DeckSli
       <div className={`${base} flex bg-paper text-ink`}>
         <div className="flex flex-1 flex-col" style={{ padding: P }}>
           <div className="flex items-start justify-between">
-            <p className="lf-eyebrow">Design Concept</p>
+            <p className="lf-eyebrow">{slide.optionLabel ? `${slide.optionLabel} — Design Concept` : "Design Concept"}</p>
             <BrandBadge brand={brand} />
           </div>
           <h2 className="lf-serif italic leading-none" style={{ fontSize: 42, marginTop: 8 }}>{slide.styleName}</h2>
@@ -140,7 +140,7 @@ export function DeckSlide({ slide, overlay, fallback, brand, controls }: DeckSli
     return (
       <div className={`${base} bg-paper text-ink`} style={{ padding: P }}>
         <div className="flex items-start justify-between">
-          <p className="lf-eyebrow">Mood &amp; Materials</p>
+          <p className="lf-eyebrow">{slide.optionLabel ? `${slide.optionLabel} — Mood & Materials` : "Mood & Materials"}</p>
           <BrandBadge brand={brand} />
         </div>
         <h2 className="lf-serif italic" style={{ fontSize: 38, marginTop: 6 }}>{slide.title}</h2>
@@ -185,7 +185,7 @@ export function DeckSlide({ slide, overlay, fallback, brand, controls }: DeckSli
         </div>
         <div className="flex flex-1 flex-col" style={{ padding: P, paddingLeft: 40 }}>
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-clay-500">Look &amp; Feel /{slide.index}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-clay-500">{slide.optionLabel ? `${slide.optionLabel} · ` : ""}Look &amp; Feel /{slide.index}</p>
             <BrandBadge brand={brand} />
           </div>
           <h2 className="lf-serif italic leading-tight" style={{ fontSize: 34, marginTop: 8 }}>{slide.name}</h2>

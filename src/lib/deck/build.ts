@@ -91,12 +91,18 @@ function pickSpaceImages(
  * Pass the shared library's images to reuse existing references first.
  */
 export function buildDeck(brief: Brief, date: Date, library: readonly LibraryImage[] = []): Deck {
-  const style = getStyle(brief.styleId);
-  const palette = buildPalette(brief.styleId, brief.brandColors);
-  const seed = `${brief.styleId}|${brief.projectName}|${brief.clientName}`;
+  // Selected concepts in presentation order (Option A/B/C). Dedupe defensively;
+  // an empty selection falls back to the default direction.
+  const styleIds = [...new Set(brief.styleIds)].filter(Boolean);
+  const styles = (styleIds.length > 0 ? styleIds : ["grounded-contemporary"]).map(getStyle);
+  const multi = styles.length > 1;
+
+  const primary = styles[0];
+  const primaryPalette = buildPalette(primary.id, brief.brandColors);
   const dateLabel = formatDeckDate(date);
   const client = brief.clientName.trim() || "Prospective Client";
   const project = brief.projectName.trim() || "Interior Design Proposal";
+  const baseSeed = `${project}|${client}`;
   // The client's mark rides on every slide; name falls back to the client name
   // so the deck is always co-branded even when nothing was uploaded.
   const brand = {
@@ -111,10 +117,10 @@ export function buildDeck(brief: Brief, date: Date, library: readonly LibraryIma
     kind: "cover",
     firm: FIRM,
     title: project,
-    subtitle: coverSubtitle(style),
+    subtitle: coverSubtitle(styles),
     client,
     dateLabel,
-    image: img(pickCover(seed), "Project cover imagery", 1600, 1000),
+    image: img(pickCover(`${primary.id}|${baseSeed}`), "Project cover imagery", 1600, 1000),
   });
 
   // Expand selected spaces into slide instances (respecting quantity).
@@ -129,66 +135,85 @@ export function buildDeck(brief: Brief, date: Date, library: readonly LibraryIma
   }
 
   // 2. Contents
-  const contentsItems = [
-    { index: "01", label: "Design Concept" },
-    { index: "02", label: "Mood & Materials" },
-    { index: "03", label: "Look & Feel — Space by Space" },
-    { index: "04", label: "Next Steps" },
-  ];
+  const contentsItems = multi
+    ? [
+        ...styles.map((s, i) => ({
+          index: String(i + 1).padStart(2, "0"),
+          label: `Option ${String.fromCharCode(65 + i)} — ${s.name}`,
+        })),
+        { index: String(styles.length + 1).padStart(2, "0"), label: "Next Steps" },
+      ]
+    : [
+        { index: "01", label: "Design Concept" },
+        { index: "02", label: "Mood & Materials" },
+        { index: "03", label: "Look & Feel — Space by Space" },
+        { index: "04", label: "Next Steps" },
+      ];
   slides.push({ kind: "contents", items: contentsItems });
 
-  // 3. Design Concept
-  slides.push({
-    kind: "concept",
-    styleName: style.name,
-    tagline: style.tagline,
-    narrative: conceptNarrative(style, brief),
-    designLanguage: style.designLanguage,
-    palette,
-    image: img(pickForCategory("lounge", style, 1, seed + "concept")[0], "Design concept imagery", 1200, 1400),
-  });
+  // 3..N. One full section per concept: concept → mood → space-by-space.
+  for (let ci = 0; ci < styles.length; ci++) {
+    const style = styles[ci];
+    const optionLabel = multi ? `Option ${String.fromCharCode(65 + ci)}` : undefined;
+    const palette = buildPalette(style.id, brief.brandColors);
+    const seed = `${style.id}|${baseSeed}`;
 
-  // 4. Mood & Materials
-  slides.push({
-    kind: "mood",
-    title: "Mood & Materials",
-    images: pickMood(seed, 6).map((id) => img(id, "Mood board reference", 700, 700)),
-    palette,
-    materials: style.materials,
-  });
+    slides.push({
+      kind: "concept",
+      styleId: style.id,
+      styleName: style.name,
+      tagline: style.tagline,
+      narrative: conceptNarrative(style, brief),
+      designLanguage: style.designLanguage,
+      palette,
+      image: img(pickForCategory("lounge", style, 1, seed + "concept")[0], "Design concept imagery", 1200, 1400),
+      optionLabel,
+    });
 
-  // 5..N. Space-by-space
-  let idx = 0;
-  for (const { space, instance, total } of spaceInstances) {
-    if (!space) continue;
-    idx += 1;
-    const instanceSeed = `${seed}|${space.id}|${instance}`;
-    const srcs = pickSpaceImages(space.category, style.id, style, 4, instanceSeed, library);
-    const hero: DeckImage = { src: srcs[0], alt: `${space.label} reference` };
-    const supporting: DeckImage[] = srcs
-      .slice(1, 4)
-      .map((src) => ({ src, alt: `${space.label} detail` }));
-    const qualifier = total > 1 ? `${space.label} ${String(instance).padStart(2, "0")}` : undefined;
+    slides.push({
+      kind: "mood",
+      styleId: style.id,
+      title: "Mood & Materials",
+      images: pickMood(seed, 6).map((id) => img(id, "Mood board reference", 700, 700)),
+      palette,
+      materials: style.materials,
+      optionLabel,
+    });
 
-    const slide: SpaceSlide = {
-      kind: "space",
-      name: space.label.toUpperCase(),
-      category: space.category,
-      qualifier,
-      hero,
-      supporting,
-      description: describeSpace(space, style, instanceSeed),
-      palette: swatchSubset(palette, idx),
-      index: String(idx).padStart(2, "0"),
-    };
-    slides.push(slide);
+    let idx = 0;
+    for (const { space, instance, total } of spaceInstances) {
+      if (!space) continue;
+      idx += 1;
+      const instanceSeed = `${seed}|${space.id}|${instance}`;
+      const srcs = pickSpaceImages(space.category, style.id, style, 4, instanceSeed, library);
+      const hero: DeckImage = { src: srcs[0], alt: `${space.label} reference` };
+      const supporting: DeckImage[] = srcs
+        .slice(1, 4)
+        .map((src) => ({ src, alt: `${space.label} detail` }));
+      const qualifier = total > 1 ? `${space.label} ${String(instance).padStart(2, "0")}` : undefined;
+
+      const slide: SpaceSlide = {
+        kind: "space",
+        name: space.label.toUpperCase(),
+        category: space.category,
+        styleId: style.id,
+        qualifier,
+        hero,
+        supporting,
+        description: describeSpace(space, style, instanceSeed),
+        palette: swatchSubset(palette, idx),
+        index: String(idx).padStart(2, "0"),
+        optionLabel,
+      };
+      slides.push(slide);
+    }
   }
 
   // Last. Closing
   slides.push({
     kind: "closing",
     firm: FIRM,
-    message: closingMessage(style),
+    message: closingMessage(styles),
     contact: "hello@lookandfeel.studio  ·  lookandfeel.studio",
   });
 
@@ -199,12 +224,13 @@ export function buildDeck(brief: Brief, date: Date, library: readonly LibraryIma
       project,
       industry: brief.industry,
       dateLabel,
-      styleId: style.id,
-      styleName: style.name,
+      styleId: primary.id,
+      styleIds: styles.map((s) => s.id),
+      styleName: styles.map((s) => s.name).join(" · "),
       budgetTier: brief.budgetTier,
       brand,
     },
-    palette,
+    palette: primaryPalette,
     slides,
   };
 }

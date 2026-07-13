@@ -78,12 +78,19 @@ export function conceptNarrative(style: StyleDirection, brief: Brief): string[] 
   return [p1, p2];
 }
 
-export function coverSubtitle(style: StyleDirection): string {
-  return `A ${style.tagline.toLowerCase()} design direction`;
+export function coverSubtitle(styles: StyleDirection[]): string {
+  if (styles.length <= 1) {
+    return `A ${styles[0].tagline.toLowerCase()} design direction`;
+  }
+  const count = styles.length === 2 ? "Two" : "Three";
+  return `${count} concepts inside — ${list(styles.map((s) => s.name))}`;
 }
 
-export function closingMessage(style: StyleDirection): string {
-  return `This ${style.name} direction is a starting point — a coherent visual language ready to carry through every space, refine together, and bring to life.`;
+export function closingMessage(styles: StyleDirection[]): string {
+  if (styles.length <= 1) {
+    return `This ${styles[0].name} direction is a starting point — a coherent visual language ready to carry through every space, refine together, and bring to life.`;
+  }
+  return `Each concept in this deck — ${list(styles.map((s) => s.name))} — is a complete visual language for the same spaces. Compare, combine, and let's refine the direction that feels right.`;
 }
 
 /** Short, human date label like "09 June 2026". */

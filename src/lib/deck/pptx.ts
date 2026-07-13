@@ -163,7 +163,7 @@ export async function exportPptx(
         slide.addImage({ data: data(s.image.src), x: W - imgW, y: 0, w: imgW, h: H, sizing: { type: "cover", w: imgW, h: H } });
       }
       const colW = W - imgW - M - 0.5;
-      eyebrow(slide, "Design Concept", M, 0.7);
+      eyebrow(slide, s.optionLabel ? `${s.optionLabel} — Design Concept` : "Design Concept", M, 0.7);
       slide.addText(s.styleName, { x: M, y: 1.02, w: colW, h: 0.8, fontFace: SERIF, fontSize: 32, color: INK, italic: true });
       slide.addText(s.tagline, { x: M, y: 1.85, w: colW, h: 0.4, fontFace: SANS, fontSize: 12.5, color: SOFT });
       slide.addText(s.narrative.join("\n\n"), {
@@ -187,7 +187,7 @@ export async function exportPptx(
     }
 
     if (s.kind === "mood") {
-      eyebrow(slide, "Mood & Materials", M, 0.7);
+      eyebrow(slide, s.optionLabel ? `${s.optionLabel} — Mood & Materials` : "Mood & Materials", M, 0.7);
       slide.addText(s.title, { x: M, y: 1.02, w: 7, h: 0.7, fontFace: SERIF, fontSize: 30, color: INK, italic: true });
       const gx = M, gy = 2.0, cw = 2.42, ch = 2.42, gap = 0.16, cols = 3;
       s.images.slice(0, 6).forEach((im, i) => {
@@ -225,7 +225,7 @@ export async function exportPptx(
       }
       const cx = heroW + 0.45;
       const cw = W - cx - M;
-      eyebrow(slide, `Look & Feel  /${s.index}`, cx, 0.7, "C9A24B");
+      eyebrow(slide, `${s.optionLabel ? `${s.optionLabel} · ` : ""}Look & Feel  /${s.index}`, cx, 0.7, "C9A24B", cw);
       slide.addText(s.name, { x: cx, y: 1.05, w: cw, h: 1.0, fontFace: SERIF, fontSize: 27, color: INK, italic: true, valign: "top" });
       if (s.qualifier) {
         slide.addText(s.qualifier, { x: cx, y: 1.95, w: cw, h: 0.3, fontFace: SANS, fontSize: 10.5, color: MUTED, charSpacing: 1 });

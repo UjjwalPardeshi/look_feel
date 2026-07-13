@@ -6,7 +6,7 @@ export const SAMPLE_BRIEF: Brief = {
   clientName: "Northwind Ventures",
   projectName: "Northwind HQ — Workplace Fit-out",
   industry: "Corporate office",
-  styleId: "grounded-contemporary",
+  styleIds: ["grounded-contemporary"],
   budgetTier: "signature",
   brandColors: [],
   brandName: "",
