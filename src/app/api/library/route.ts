@@ -48,8 +48,18 @@ function blobToken(): string | undefined {
   return undefined;
 }
 
+/**
+ * The store is usable with either auth mode:
+ * - classic: a read-write token env var, or
+ * - OIDC: BLOB_STORE_ID + the VERCEL_OIDC_TOKEN Vercel injects into functions
+ *   (the SDK resolves these automatically when no token is passed).
+ */
+function oidcAvailable(): boolean {
+  return Boolean(process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN);
+}
+
 function configured(): boolean {
-  return Boolean(blobToken());
+  return Boolean(blobToken()) || oidcAvailable();
 }
 
 function hash16(input: string | Buffer): string {
@@ -118,7 +128,11 @@ export async function GET() {
     const envKeys = Object.keys(process.env).filter(
       (k) => k.includes("BLOB") || k.endsWith("_READ_WRITE_TOKEN"),
     );
-    return NextResponse.json({ configured: false, images: [], diag: { envKeys } });
+    return NextResponse.json({
+      configured: false,
+      images: [],
+      diag: { envKeys, oidc: Boolean(process.env.VERCEL_OIDC_TOKEN) },
+    });
   }
   try {
     const images = await listAll();
