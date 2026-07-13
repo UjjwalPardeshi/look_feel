@@ -138,6 +138,11 @@ function hash(seed: string): number {
   return h >>> 0;
 }
 
+/** Public deterministic hash for seeded rotation elsewhere (e.g. library picks). */
+export function seedHash(seed: string): number {
+  return hash(seed);
+}
+
 function orderByTone(imgs: Img[], style: StyleDirection): Img[] {
   const prefs = STYLE_TONES[style.id] ?? ["neutral"];
   const rank = (t: Tone) => {

@@ -2,7 +2,7 @@
 
 import type { Deck, Swatch } from "../types";
 import { getStyle } from "../styles";
-import { resolveDeckImages } from "./imageData";
+import { prepareLogo, resolveDeckImages } from "./imageData";
 
 // Work in a 1280×720 px (16:9) page. 96 px per inch, so layout numbers below are
 // inches × 96 and font sizes are points × (96/72).
@@ -124,6 +124,34 @@ export async function exportPdf(
     first = false;
   };
 
+  const logo = await prepareLogo(deck.meta.brand?.logo);
+  const brandName = deck.meta.brand?.name.trim() ?? "";
+
+  // Stamp the client's mark top-right on the current page: logo when uploaded,
+  // name text otherwise. Dark pages get a paper plate behind the logo.
+  const brandMark = (opts: { y?: number; right?: number; dark?: boolean; h?: number } = {}) => {
+    const right = opts.right ?? PW - M;
+    const y = opts.y ?? 0.66 * U;
+    if (logo) {
+      let h = opts.h ?? 0.3 * U;
+      let w = h * logo.aspect;
+      if (w > 1.6 * U) {
+        w = 1.6 * U;
+        h = w / logo.aspect;
+      }
+      if (opts.dark) {
+        setFill(doc, PAPER);
+        doc.roundedRect(right - w - 0.12 * U, y - 0.08 * U, w + 0.24 * U, h + 0.16 * U, 4, 4, "F");
+      }
+      doc.addImage(logo.data, "PNG", right - w, y, w, h);
+    } else if (brandName) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fpx(9.5));
+      setText(doc, opts.dark ? CREAM : MUTED);
+      doc.text(spaced(brandName.toUpperCase()), right, y, { align: "right", baseline: "top" });
+    }
+  };
+
   for (const s of deck.slides) {
     if (s.kind === "cover") {
       page();
@@ -157,6 +185,7 @@ export async function exportPdf(
       setText(doc, [243, 236, 225]);
       doc.text(spaced(`PREPARED FOR ${s.client.toUpperCase()}`), M, 6.72 * U, { baseline: "top" });
       doc.text(s.dateLabel, PW - M, 6.72 * U, { baseline: "top", align: "right" });
+      brandMark({ y: 0.62 * U, dark: true, h: 0.34 * U });
       continue;
     }
 
@@ -183,6 +212,7 @@ export async function exportPdf(
         doc.setLineWidth(0.75);
         doc.line(M, y + 0.75 * U, M + 9.5 * U, y + 0.75 * U);
       });
+      brandMark({ y: 0.66 * U });
       continue;
     }
 
@@ -226,6 +256,7 @@ export async function exportPdf(
         });
       });
       swatchRow(doc, s.palette, M, 6.85 * U, 26, 42);
+      brandMark({ right: PW - imgW - 0.3 * U, y: 0.62 * U });
       continue;
     }
 
@@ -268,6 +299,7 @@ export async function exportPdf(
         doc.text(l, sx, yy, { baseline: "top" });
         yy += l.length * adv(10, 1.2) + 6;
       });
+      brandMark({ y: 0.62 * U });
       continue;
     }
 
@@ -298,6 +330,7 @@ export async function exportPdf(
         const img = await coverCrop(raw(s.supporting[i].src), tw, 1.05 * U);
         if (img) doc.addImage(img, "JPEG", cx + i * (tw + 0.12 * U), PH - 1.5 * U, tw, 1.05 * U);
       }
+      brandMark({ y: 0.62 * U });
       continue;
     }
 
@@ -323,6 +356,7 @@ export async function exportPdf(
       doc.setFontSize(fpx(12));
       setText(doc, [243, 236, 225]);
       doc.text(s.contact, M, 5.8 * U, { baseline: "top" });
+      brandMark({ y: 0.62 * U, dark: true, h: 0.34 * U });
       continue;
     }
   }

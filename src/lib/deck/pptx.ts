@@ -2,7 +2,7 @@
 
 import type { Deck, Swatch } from "../types";
 import { getStyle } from "../styles";
-import { hx, resolveDeckImages } from "./imageData";
+import { hx, prepareLogo, resolveDeckImages } from "./imageData";
 
 // 16:9 canvas in inches.
 const W = 13.333;
@@ -63,6 +63,52 @@ export async function exportPptx(
   const style = getStyle(deck.meta.styleId);
   const overlayColor = hx(style.palette[style.palette.length - 1].hex);
 
+  const logo = await prepareLogo(deck.meta.brand?.logo);
+  const brandName = deck.meta.brand?.name.trim() ?? "";
+
+  // Stamp the client's mark top-right on a slide: logo when uploaded, name text
+  // otherwise. On dark slides the logo sits on a paper plate so it stays legible.
+  function brandMark(
+    slide: Slide,
+    opts: { y?: number; right?: number; dark?: boolean; h?: number } = {},
+  ) {
+    const right = opts.right ?? W - M;
+    const y = opts.y ?? 0.66;
+    if (logo) {
+      let h = opts.h ?? 0.3;
+      let w = h * logo.aspect;
+      if (w > 1.6) {
+        w = 1.6;
+        h = w / logo.aspect;
+      }
+      if (opts.dark) {
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x: right - w - 0.12,
+          y: y - 0.08,
+          w: w + 0.24,
+          h: h + 0.16,
+          fill: { color: PAPER },
+          line: { color: PAPER, width: 0.5 },
+          rectRadius: 0.04,
+        });
+      }
+      slide.addImage({ data: logo.data, x: right - w, y, w, h });
+    } else if (brandName) {
+      slide.addText(brandName.toUpperCase(), {
+        x: right - 4,
+        y: y - 0.04,
+        w: 4,
+        h: 0.3,
+        fontFace: SANS,
+        fontSize: 9.5,
+        bold: true,
+        charSpacing: 2,
+        color: opts.dark ? "EDE4D5" : MUTED,
+        align: "right",
+      });
+    }
+  }
+
   for (const s of deck.slides) {
     const slide = pptx.addSlide();
 
@@ -90,6 +136,7 @@ export async function exportPptx(
       slide.addText(s.dateLabel, {
         x: W - 4.5, y: 6.7, w: 3.88, h: 0.3, fontFace: SANS, fontSize: 10, color: "F3ECE1", align: "right", charSpacing: 1,
       });
+      brandMark(slide, { y: 0.55, dark: true, h: 0.34 });
       continue;
     }
 
@@ -106,6 +153,7 @@ export async function exportPptx(
         slide.addText(it.label, { x: M + 1.3, y: y + 0.03, w: 8, h: 0.6, fontFace: SANS, fontSize: 18, color: INK });
         slide.addShape(pptx.ShapeType.line, { x: M, y: y + 0.75, w: 9.5, h: 0, line: { color: LINE, width: 0.75 } });
       });
+      brandMark(slide, { y: 0.7 });
       continue;
     }
 
@@ -134,6 +182,7 @@ export async function exportPptx(
         });
       });
       swatchRow(pptx, slide, s.palette, M, 6.75, 0.3, 0.44);
+      brandMark(slide, { right: W - imgW - 0.3, y: 0.66 });
       continue;
     }
 
@@ -165,6 +214,7 @@ export async function exportPptx(
         { text: `${mm.note}\n`, options: { color: SOFT, fontSize: 10 } },
       ]);
       slide.addText(matRuns, { x: sx, y: my + 0.32, w: sw, h: 2.2, fontFace: SANS, lineSpacingMultiple: 1.2, valign: "top" });
+      brandMark(slide, { y: 0.66 });
       continue;
     }
 
@@ -194,6 +244,7 @@ export async function exportPptx(
           });
         }
       });
+      brandMark(slide, { y: 0.66 });
       continue;
     }
 
@@ -209,6 +260,7 @@ export async function exportPptx(
       });
       slide.addShape(pptx.ShapeType.line, { x: M, y: 5.6, w: 3, h: 0, line: { color: "C9A24B", width: 1.5 } });
       slide.addText(s.contact, { x: M, y: 5.8, w: 10, h: 0.4, fontFace: SANS, fontSize: 12, color: "F3ECE1", charSpacing: 1 });
+      brandMark(slide, { y: 0.6, dark: true, h: 0.34 });
       continue;
     }
   }

@@ -30,7 +30,7 @@ export function DeckViewer({
           </div>
           <div className="relative">
             <ScaledSlide>
-              <DeckSlide slide={slide} overlay={overlay} fallback={fallback} />
+              <DeckSlide slide={slide} overlay={overlay} fallback={fallback} brand={deck.meta.brand} />
             </ScaledSlide>
             {slide.kind === "space" && renderSpaceControls?.(slide, i)}
           </div>

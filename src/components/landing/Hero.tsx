@@ -60,12 +60,12 @@ export function Hero({ deck }: { deck: Deck }) {
           <div className="relative mx-auto max-w-[520px]">
             <div className="absolute -right-4 top-10 w-[78%] rotate-[4deg] opacity-90 blur-[0.3px]">
               <ScaledSlide>
-                <DeckSlide slide={space} overlay={overlay} fallback={fallback} />
+                <DeckSlide slide={space} overlay={overlay} fallback={fallback} brand={deck.meta.brand} />
               </ScaledSlide>
             </div>
             <div className="relative -rotate-[3deg]">
               <ScaledSlide>
-                <DeckSlide slide={cover} overlay={overlay} fallback={fallback} />
+                <DeckSlide slide={cover} overlay={overlay} fallback={fallback} brand={deck.meta.brand} />
               </ScaledSlide>
             </div>
           </div>

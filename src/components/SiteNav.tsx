@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 const LINKS = [
   { href: "/#how", label: "How it works" },
   { href: "/#sample", label: "Sample deck" },
-  { href: "/#why", label: "Why it wins" },
+  { href: "/library", label: "Library" },
   { href: "/sample", label: "Live example" },
 ];
 

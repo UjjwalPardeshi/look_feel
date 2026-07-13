@@ -24,6 +24,7 @@ export function SiteFooter() {
               title="Product"
               links={[
                 { href: "/generate", label: "Generate a deck" },
+                { href: "/library", label: "Reference library" },
                 { href: "/sample", label: "Sample output" },
                 { href: "/#how", label: "How it works" },
               ]}

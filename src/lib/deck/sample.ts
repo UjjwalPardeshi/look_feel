@@ -9,6 +9,8 @@ export const SAMPLE_BRIEF: Brief = {
   styleId: "grounded-contemporary",
   budgetTier: "signature",
   brandColors: [],
+  brandName: "",
+  brandLogo: null,
   notes: "Warm, hospitality-led headquarters for a growing investment firm.",
   spaces: [
     { spaceId: "reception", quantity: 1 },

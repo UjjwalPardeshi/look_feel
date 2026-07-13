@@ -10,17 +10,27 @@ import {
   Loader2,
   Check,
   Pencil,
+  Library,
 } from "lucide-react";
+import Link from "next/link";
 import type { Brief, Deck, SpaceSlide } from "@/lib/types";
+import type { LibraryImage } from "@/lib/library/types";
 import { STYLE_DIRECTIONS, getStyle } from "@/lib/styles";
 import { defaultSelectedSpaces } from "@/lib/spaces";
 import { buildDeck } from "@/lib/deck/build";
 import { categoryImageUrls } from "@/lib/imagery";
+import {
+  fetchLibrary,
+  ingestDeck,
+  uploadToLibrary,
+  compressImage,
+} from "@/lib/library/client";
 import { DeckViewer } from "@/components/deck/DeckViewer";
 import { ExportBar } from "@/components/deck/ExportBar";
 import { PaletteRow } from "@/components/deck/PaletteRow";
 import { BriefStep } from "./BriefStep";
 import { SpacesStep } from "./SpacesStep";
+import { SwapModal } from "./SwapModal";
 import { cn } from "@/lib/cn";
 
 type Stage = "brief" | "spaces" | "generating" | "result";
@@ -32,6 +42,8 @@ const INITIAL_BRIEF: Brief = {
   styleId: STYLE_DIRECTIONS[0].id,
   budgetTier: "signature",
   brandColors: [],
+  brandName: "",
+  brandLogo: null,
   notes: "",
   spaces: defaultSelectedSpaces(),
 };
@@ -42,15 +54,37 @@ const STEPS = [
   { id: "result", n: "3", label: "The deck" },
 ] as const;
 
+/** How many of the deck's space images were served from the shared library. */
+function countLibraryReuse(deck: Deck, library: readonly LibraryImage[]): number {
+  const libraryUrls = new Set(library.map((li) => li.url));
+  let reused = 0;
+  for (const slide of deck.slides) {
+    if (slide.kind !== "space") continue;
+    for (const im of [slide.hero, ...slide.supporting]) {
+      if (libraryUrls.has(im.src)) reused++;
+    }
+  }
+  return reused;
+}
+
 export function Wizard() {
   const [stage, setStage] = useState<Stage>("brief");
   const [brief, setBrief] = useState<Brief>(INITIAL_BRIEF);
   const [deck, setDeck] = useState<Deck | null>(null);
   const [progress, setProgress] = useState({ pct: 0, label: "" });
 
+  // Shared reference library (fetched at generation time).
+  const [library, setLibrary] = useState<LibraryImage[]>([]);
+  const [libraryConfigured, setLibraryConfigured] = useState(false);
+  const [libraryStats, setLibraryStats] = useState<{ reused: number; saved: number | null }>({
+    reused: 0,
+    saved: null,
+  });
+
+  const [swapTarget, setSwapTarget] = useState<{ index: number; slide: SpaceSlide } | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   const offsets = useRef<Record<number, number>>({});
-  const swapIndex = useRef<number | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const patch = (p: Partial<Brief>) => setBrief((b) => ({ ...b, ...p }));
 
@@ -59,39 +93,62 @@ export function Wizard() {
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ---- generation animation ----
+  // ---- generation: library first, then build, then ingest for reuse ----
   useEffect(() => {
     if (stage !== "generating") return;
     let cancelled = false;
-    const built = buildDeck(brief, new Date());
-    const spaceNames = built.slides.filter((s) => s.kind === "space").map((s) => (s as SpaceSlide).name);
-    const labels = [
-      "Setting the design direction",
-      "Building the palette & materials",
-      "Curating the mood board",
-      ...spaceNames.map((n) => `Curating references · ${n.toLowerCase()}`),
-      "Composing the narrative",
-      "Assembling your deck",
-    ];
-    let i = 0;
-    const tick = () => {
+    const timers: number[] = [];
+    const delay = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timers.push(window.setTimeout(resolve, ms));
+      });
+
+    (async () => {
+      setProgress({ pct: 0.05, label: "Checking your reference library" });
+      const lib = await fetchLibrary();
       if (cancelled) return;
-      setProgress({ pct: (i + 1) / labels.length, label: labels[Math.min(i, labels.length - 1)] });
-      i++;
-      if (i < labels.length) {
-        window.setTimeout(tick, 170);
-      } else {
-        window.setTimeout(() => {
-          if (cancelled) return;
-          offsets.current = {};
-          setDeck(built);
-          goto("result");
-        }, 260);
+      setLibrary(lib.images);
+      setLibraryConfigured(lib.configured);
+
+      const built = buildDeck(brief, new Date(), lib.images);
+      const reused = countLibraryReuse(built, lib.images);
+      const spaceNames = built.slides
+        .filter((s): s is SpaceSlide => s.kind === "space")
+        .map((s) => s.name);
+      const labels = [
+        ...(reused > 0 ? [`Reusing ${reused} references from your library`] : []),
+        "Setting the design direction",
+        "Building the palette & materials",
+        "Curating the mood board",
+        ...spaceNames.map((n) => `Curating references · ${n.toLowerCase()}`),
+        "Composing the narrative",
+        "Assembling your deck",
+      ];
+      for (let i = 0; i < labels.length; i++) {
+        if (cancelled) return;
+        setProgress({ pct: (i + 1) / labels.length, label: labels[i] });
+        await delay(170);
       }
-    };
-    tick();
+      if (cancelled) return;
+
+      offsets.current = {};
+      setDeck(built);
+      setLibraryStats({ reused, saved: null });
+      goto("result");
+
+      // Fire-and-forget: bank this deck's references for future reuse.
+      ingestDeck(built)
+        .then((added) => {
+          if (!cancelled) setLibraryStats({ reused, saved: added });
+        })
+        .catch(() => {
+          if (!cancelled) setLibraryStats({ reused, saved: 0 });
+        });
+    })();
+
     return () => {
       cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
@@ -109,7 +166,12 @@ export function Wizard() {
 
   function regenerate(slide: SpaceSlide, index: number) {
     if (!deck) return;
-    const pool = categoryImageUrls(slide.category, getStyle(deck.meta.styleId));
+    const style = getStyle(deck.meta.styleId);
+    // Library references first (on-style, same space), then the generator pool.
+    const libraryUrls = library
+      .filter((li) => li.category === slide.category && li.styleId === deck.meta.styleId)
+      .map((li) => li.url);
+    const pool = [...new Set([...libraryUrls, ...categoryImageUrls(slide.category, style)])];
     if (pool.length === 0) return;
     let off = (offsets.current[index] ?? 0) + 1;
     let next = pool[off % pool.length];
@@ -121,27 +183,39 @@ export function Wizard() {
     updateHero(index, next, false);
   }
 
-  function requestSwap(index: number) {
-    swapIndex.current = index;
-    fileInput.current?.click();
-  }
-
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    const idx = swapIndex.current;
-    e.target.value = "";
-    if (!file || idx === null) return;
-    const reader = new FileReader();
-    reader.onload = () => updateHero(idx, reader.result as string, true);
-    reader.readAsDataURL(file);
+  async function handleUploadFile(file: File) {
+    const target = swapTarget;
+    if (!target || !deck) return;
+    setUploading(true);
+    try {
+      let dataUrl: string;
+      try {
+        dataUrl = await compressImage(file);
+      } catch {
+        // Canvas couldn't decode the file — fall back to the raw data URL.
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("could not read file"));
+          reader.readAsDataURL(file);
+        });
+      }
+      // Store in the shared library; if unconfigured, the local data URL still swaps in.
+      const saved = await uploadToLibrary(dataUrl, target.slide.category, deck.meta.styleId);
+      if (saved) {
+        setLibrary((l) => [saved, ...l.filter((x) => x.pathname !== saved.pathname)]);
+      }
+      updateHero(target.index, saved?.url ?? dataUrl, true);
+      setSwapTarget(null);
+    } finally {
+      setUploading(false);
+    }
   }
 
   const activeStepId = stage === "generating" ? "spaces" : stage;
 
   return (
     <div>
-      <input ref={fileInput} type="file" accept="image/*" onChange={onFile} className="hidden" />
-
       {/* Stepper */}
       {stage !== "result" && (
         <div className="mb-10 flex items-center gap-3">
@@ -196,32 +270,53 @@ export function Wizard() {
       {stage === "generating" && <GeneratingView progress={progress} />}
 
       {stage === "result" && deck && (
-        <ResultView
-          deck={deck}
-          onRestart={() => {
-            setDeck(null);
-            goto("brief");
-          }}
-          onEdit={() => goto("brief")}
-          renderControls={(slide, index) => (
-            <div className="absolute left-3 top-3 flex gap-2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slide:opacity-100">
-              <button
-                onClick={() => regenerate(slide, index)}
-                title="Regenerate this image"
-                className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 text-[11px] font-medium text-paper backdrop-blur transition-colors hover:bg-ink"
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-              </button>
-              <button
-                onClick={() => requestSwap(index)}
-                title="Upload your own image"
-                className="inline-flex items-center gap-1.5 rounded-full bg-paper/90 px-3 py-1.5 text-[11px] font-medium text-ink backdrop-blur transition-colors hover:bg-white"
-              >
-                <Upload className="h-3.5 w-3.5" /> Swap
-              </button>
-            </div>
-          )}
-        />
+        <>
+          <ResultView
+            deck={deck}
+            libraryConfigured={libraryConfigured}
+            libraryStats={libraryStats}
+            onRestart={() => {
+              setDeck(null);
+              goto("brief");
+            }}
+            onEdit={() => goto("brief")}
+            renderControls={(slide, index) => (
+              <div className="absolute left-3 top-3 flex gap-2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slide:opacity-100">
+                <button
+                  onClick={() => regenerate(slide, index)}
+                  title="Regenerate this image"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 text-[11px] font-medium text-paper backdrop-blur transition-colors hover:bg-ink"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                </button>
+                <button
+                  onClick={() => setSwapTarget({ index, slide })}
+                  title="Swap from library or upload"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-paper/90 px-3 py-1.5 text-[11px] font-medium text-ink backdrop-blur transition-colors hover:bg-white"
+                >
+                  <Upload className="h-3.5 w-3.5" /> Swap
+                </button>
+              </div>
+            )}
+          />
+          <SwapModal
+            open={swapTarget !== null}
+            spaceLabel={swapTarget ? swapTarget.slide.qualifier ?? swapTarget.slide.name : ""}
+            category={swapTarget?.slide.category ?? "workstation"}
+            styleId={deck.meta.styleId}
+            library={library}
+            libraryConfigured={libraryConfigured}
+            uploading={uploading}
+            onPick={(url) => {
+              if (swapTarget) updateHero(swapTarget.index, url, false);
+              setSwapTarget(null);
+            }}
+            onUploadFile={handleUploadFile}
+            onClose={() => {
+              if (!uploading) setSwapTarget(null);
+            }}
+          />
+        </>
       )}
     </div>
   );
@@ -245,13 +340,48 @@ function GeneratingView({ progress }: { progress: { pct: number; label: string }
   );
 }
 
+function LibraryNote({
+  configured,
+  stats,
+}: {
+  configured: boolean;
+  stats: { reused: number; saved: number | null };
+}) {
+  if (!configured) return null;
+  let text: string;
+  if (stats.saved === null) {
+    text = "Saving this deck's references to your library…";
+  } else if (stats.reused > 0 && stats.saved === 0) {
+    text = `${stats.reused} references reused from your library — nothing new to generate.`;
+  } else if (stats.saved > 0 && stats.reused > 0) {
+    text = `${stats.reused} references reused · ${stats.saved} new saved for future decks.`;
+  } else if (stats.saved > 0) {
+    text = `${stats.saved} references saved to your library for future reuse.`;
+  } else {
+    text = "This deck's references are in your library.";
+  }
+  return (
+    <Link
+      href="/library"
+      className="inline-flex items-center gap-2 rounded-full bg-sand px-3.5 py-1.5 text-[12px] font-medium text-ink/70 ring-1 ring-ink/10 transition-colors hover:text-ink"
+    >
+      <Library className="h-3.5 w-3.5 text-clay-600" />
+      {text}
+    </Link>
+  );
+}
+
 function ResultView({
   deck,
+  libraryConfigured,
+  libraryStats,
   onRestart,
   onEdit,
   renderControls,
 }: {
   deck: Deck;
+  libraryConfigured: boolean;
+  libraryStats: { reused: number; saved: number | null };
   onRestart: () => void;
   onEdit: () => void;
   renderControls: (slide: SpaceSlide, index: number) => React.ReactNode;
@@ -274,6 +404,9 @@ function ResultView({
             </p>
             <div className="mt-5">
               <PaletteRow palette={deck.palette} size={28} gap={14} labels />
+            </div>
+            <div className="mt-4">
+              <LibraryNote configured={libraryConfigured} stats={libraryStats} />
             </div>
           </div>
           <div className="flex flex-col items-start gap-4">

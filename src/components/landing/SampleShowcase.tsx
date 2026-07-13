@@ -42,7 +42,7 @@ export function SampleShowcase({ deck }: { deck: Deck }) {
         <div className="mt-14 grid gap-6 md:grid-cols-2">
           {picks.map((slide, i) => (
             <ScaledSlide key={i}>
-              <DeckSlide slide={slide} overlay={overlay} fallback={fallback} />
+              <DeckSlide slide={slide} overlay={overlay} fallback={fallback} brand={deck.meta.brand} />
             </ScaledSlide>
           ))}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Plus, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, ImagePlus, Plus, X } from "lucide-react";
 import type { Brief, BudgetTier } from "@/lib/types";
 import { STYLE_DIRECTIONS, BUDGET_TIERS } from "@/lib/styles";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,30 @@ export function BriefStep({
   };
   const removeColor = (i: number) => {
     onChange({ brandColors: brief.brandColors.filter((_, j) => j !== i) });
+  };
+
+  const logoInput = useRef<HTMLInputElement>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  const onLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setLogoError("That file isn't an image — try a PNG, JPG, or SVG.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setLogoError("Logo is over 4 MB — please use a smaller file.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoError(null);
+      onChange({ brandLogo: reader.result as string });
+    };
+    reader.onerror = () => setLogoError("Couldn't read that file — please try again.");
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -129,6 +154,81 @@ export function BriefStep({
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Client brand mark */}
+      <div>
+        <h3 className="lf-eyebrow">Client brand</h3>
+        <p className="mt-2 text-[14px] text-ink/55">
+          Stamped automatically on every slide of the deck — the logo if you upload one,
+          otherwise the brand name as text.
+        </p>
+        <div className="mt-5 grid gap-6 md:grid-cols-2">
+          <div>
+            <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.14em] text-ink/55">
+              Logo (optional)
+            </span>
+            <input
+              ref={logoInput}
+              type="file"
+              accept="image/*"
+              onChange={onLogoFile}
+              className="hidden"
+              aria-label="Upload client logo"
+            />
+            {brief.brandLogo ? (
+              <div className="flex items-center gap-4 rounded-xl border border-ink/12 bg-white p-3">
+                <span className="grid h-16 w-32 shrink-0 place-items-center overflow-hidden rounded-lg bg-paper ring-1 ring-ink/8">
+                  {/* data-URL preview; next/image can't take data URLs */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={brief.brandLogo}
+                    alt="Client logo preview"
+                    className="max-h-12 max-w-[104px] object-contain"
+                  />
+                </span>
+                <span className="flex-1 text-[12.5px] leading-snug text-ink/55">
+                  Appears in the top-right corner of every slide.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange({ brandLogo: null })}
+                  aria-label="Remove logo"
+                  className="text-ink/40 hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => logoInput.current?.click()}
+                className="flex w-full items-center gap-3 rounded-xl border border-dashed border-ink/25 px-4 py-4 text-left text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/45 hover:text-ink"
+              >
+                <ImagePlus className="h-4 w-4 shrink-0" />
+                <span>
+                  Upload the client&rsquo;s logo
+                  <span className="mt-0.5 block text-[11.5px] font-normal text-ink/45">
+                    PNG with a transparent background works best · up to 4 MB
+                  </span>
+                </span>
+              </button>
+            )}
+            {logoError && <p className="mt-2 text-[12px] text-red-600">{logoError}</p>}
+          </div>
+
+          <Field label="Brand name on slides">
+            <input
+              value={brief.brandName}
+              onChange={(e) => onChange({ brandName: e.target.value })}
+              placeholder={brief.clientName.trim() || "e.g. Northwind Ventures"}
+              className={inputCls}
+            />
+            <p className="mt-2 text-[12px] text-ink/45">
+              Shown when there&rsquo;s no logo. Left empty, it defaults to the client name.
+            </p>
+          </Field>
         </div>
       </div>
 

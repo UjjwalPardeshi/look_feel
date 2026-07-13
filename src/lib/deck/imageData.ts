@@ -1,3 +1,5 @@
+"use client";
+
 import type { Deck } from "../types";
 
 /** #rrggbb → RRGGBB (pptxgenjs / jsPDF want no hash). */
@@ -29,23 +31,86 @@ function solidFallback(hex: string): string {
   return canvas.toDataURL("image/jpeg", 0.8);
 }
 
-/** Fetch one image and return a base64 data URL (already-data URLs pass through). */
-export async function toDataUrl(src: string, fallbackHex = "#d8cdbb"): Promise<string> {
-  if (src.startsWith("data:")) return src;
+function isBlobStoreUrl(src: string): boolean {
+  try {
+    return new URL(src).hostname.endsWith(".public.blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
+
+async function fetchAsDataUrl(src: string, timeoutMs: number): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(src, { mode: "cors", signal: controller.signal });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    const blob = await res.blob();
-    return await blobToDataUrl(blob);
-  } catch {
-    // A slow, throttled, or failed image degrades to a solid palette tile so the
-    // export always completes instead of hanging on one stuck request.
-    return solidFallback(fallbackHex);
+    return await blobToDataUrl(await res.blob());
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Fetch one image and return a base64 data URL (already-data URLs pass through). */
+export async function toDataUrl(src: string, fallbackHex = "#d8cdbb"): Promise<string> {
+  if (src.startsWith("data:")) return src;
+  try {
+    return await fetchAsDataUrl(src, 9000);
+  } catch {
+    // Library assets get a second chance through the same-origin proxy in case
+    // a direct cross-origin fetch of the blob store is ever blocked.
+    if (isBlobStoreUrl(src)) {
+      try {
+        return await fetchAsDataUrl(`/api/library/file?url=${encodeURIComponent(src)}`, 9000);
+      } catch {
+        /* fall through to the solid tile */
+      }
+    }
+    // A slow, throttled, or failed image degrades to a solid palette tile so the
+    // export always completes instead of hanging on one stuck request.
+    return solidFallback(fallbackHex);
+  }
+}
+
+export interface PreparedLogo {
+  /** PNG data URL, transparency preserved */
+  data: string;
+  /** natural width ÷ height, for sizing the mark in exports */
+  aspect: number;
+}
+
+/**
+ * Normalise an uploaded logo to PNG and measure its aspect ratio. Uploads can be
+ * any browser-renderable format (SVG, WEBP…), but jsPDF and PowerPoint only
+ * reliably embed PNG/JPEG — re-rasterising through a canvas covers them all.
+ * Returns null when there is no logo or it can't be decoded (export continues
+ * with the text mark instead).
+ */
+export function prepareLogo(src: string | null | undefined): Promise<PreparedLogo | null> {
+  return new Promise((resolve) => {
+    if (!src || typeof document === "undefined") return resolve(null);
+    const image = new Image();
+    image.onload = () => {
+      const w = image.naturalWidth || image.width;
+      const h = image.naturalHeight || image.height;
+      if (!w || !h) return resolve(null);
+      // Render at up to 240px tall — far more than the ~0.35in mark needs.
+      const scale = Math.min(1, 240 / h);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return resolve(null);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      try {
+        resolve({ data: canvas.toDataURL("image/png"), aspect: w / h });
+      } catch {
+        resolve(null);
+      }
+    };
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
 }
 
 /**

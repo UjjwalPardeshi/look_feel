@@ -13,7 +13,9 @@ import {
   pickForCategory,
   pickMood,
   pickCover,
+  seedHash,
 } from "../imagery";
+import type { LibraryImage } from "../library/types";
 import {
   describeSpace,
   conceptNarrative,
@@ -49,16 +51,58 @@ function img(id: string, alt: string, w = 1200, h = 800): DeckImage {
 }
 
 /**
+ * Library-first image selection for one space instance: reuse references from
+ * the shared library (matching category + style) before falling back to the
+ * built-in generator pool — the mechanic that amortises generation cost.
+ * Deterministically rotated by seed so different clients get varied picks.
+ */
+function pickSpaceImages(
+  category: SpaceSlide["category"],
+  styleId: string,
+  style: ReturnType<typeof getStyle>,
+  count: number,
+  instanceSeed: string,
+  library: readonly LibraryImage[],
+): string[] {
+  const fromLibrary = library.filter(
+    (li) => li.category === category && li.styleId === styleId,
+  );
+  const rotated: string[] = [];
+  if (fromLibrary.length > 0) {
+    const offset = seedHash(instanceSeed) % fromLibrary.length;
+    for (let i = 0; i < fromLibrary.length; i++) {
+      rotated.push(fromLibrary[(offset + i) % fromLibrary.length].url);
+    }
+  }
+  const poolUrls = pickForCategory(category, style, count, instanceSeed).map((id) =>
+    imageUrl(id, 1400, 950),
+  );
+  const out: string[] = [];
+  for (const src of [...rotated, ...poolUrls]) {
+    if (!out.includes(src)) out.push(src);
+    if (out.length === count) break;
+  }
+  return out;
+}
+
+/**
  * Pure deck builder: (brief) → structured, space-by-space Deck model.
  * The exporters (PPTX / PDF) and the on-screen preview all consume this.
+ * Pass the shared library's images to reuse existing references first.
  */
-export function buildDeck(brief: Brief, date: Date): Deck {
+export function buildDeck(brief: Brief, date: Date, library: readonly LibraryImage[] = []): Deck {
   const style = getStyle(brief.styleId);
   const palette = buildPalette(brief.styleId, brief.brandColors);
   const seed = `${brief.styleId}|${brief.projectName}|${brief.clientName}`;
   const dateLabel = formatDeckDate(date);
   const client = brief.clientName.trim() || "Prospective Client";
   const project = brief.projectName.trim() || "Interior Design Proposal";
+  // The client's mark rides on every slide; name falls back to the client name
+  // so the deck is always co-branded even when nothing was uploaded.
+  const brand = {
+    name: brief.brandName.trim() || client,
+    logo: brief.brandLogo,
+  };
 
   const slides: Slide[] = [];
 
@@ -119,9 +163,11 @@ export function buildDeck(brief: Brief, date: Date): Deck {
     if (!space) continue;
     idx += 1;
     const instanceSeed = `${seed}|${space.id}|${instance}`;
-    const ids = pickForCategory(space.category, style, 4, instanceSeed);
-    const hero = img(ids[0], `${space.label} reference`, 1400, 950);
-    const supporting = ids.slice(1, 4).map((id) => img(id, `${space.label} detail`, 700, 520));
+    const srcs = pickSpaceImages(space.category, style.id, style, 4, instanceSeed, library);
+    const hero: DeckImage = { src: srcs[0], alt: `${space.label} reference` };
+    const supporting: DeckImage[] = srcs
+      .slice(1, 4)
+      .map((src) => ({ src, alt: `${space.label} detail` }));
     const qualifier = total > 1 ? `${space.label} ${String(instance).padStart(2, "0")}` : undefined;
 
     const slide: SpaceSlide = {
@@ -156,6 +202,7 @@ export function buildDeck(brief: Brief, date: Date): Deck {
       styleId: style.id,
       styleName: style.name,
       budgetTier: brief.budgetTier,
+      brand,
     },
     palette,
     slides,

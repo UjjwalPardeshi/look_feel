@@ -79,6 +79,17 @@ export interface SelectedSpace {
   quantity: number;
 }
 
+/**
+ * The client's brand mark, stamped on every slide of the deck.
+ * Logo wins when provided; otherwise the name is set as text.
+ */
+export interface BrandMark {
+  /** display name — falls back to the client name; also the logo's alt text */
+  name: string;
+  /** uploaded logo as a data URL, if the client supplied one */
+  logo: string | null;
+}
+
 /** The full client brief captured by the wizard. */
 export interface Brief {
   clientName: string;
@@ -88,6 +99,10 @@ export interface Brief {
   budgetTier: BudgetTier;
   /** optional brand colours that augment the style palette */
   brandColors: string[];
+  /** client brand name shown on every slide (falls back to clientName) */
+  brandName: string;
+  /** client logo as a data URL, shown on every slide when provided */
+  brandLogo: string | null;
   notes: string;
   spaces: SelectedSpace[];
 }
@@ -174,6 +189,8 @@ export interface DeckMeta {
   styleId: string;
   styleName: string;
   budgetTier: BudgetTier;
+  /** client brand mark rendered on every slide (preview, PPTX, PDF) */
+  brand: BrandMark;
 }
 
 export interface Deck {

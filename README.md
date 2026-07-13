@@ -45,6 +45,46 @@ The reference decks under `reference/` are excluded from deployments via
 > If you previously set the project's **Root Directory** to `web` in the Vercel
 > dashboard, reset it to `./` (repo root) — the app now lives at the root.
 
+### Enable the shared Reference Library (one-time)
+
+The library stores every generated/uploaded reference in **Vercel Blob** so the
+whole team reuses imagery across clients instead of regenerating it:
+
+1. Vercel dashboard → your project → **Storage → Create Database → Blob**.
+2. Connect the store to this project — the `BLOB_READ_WRITE_TOKEN` env var is
+   added automatically.
+3. Redeploy.
+
+Without the store the app still works fully (decks generate from the built-in
+pool); the `/library` page shows these setup steps until it's connected. For
+local dev, run `vercel env pull` to get the token into `.env.local`.
+
+**Optional:** set a `LIBRARY_ADMIN_TOKEN` env var to protect deletions — the
+library page will ask for the token the first time someone removes an image.
+Reads and ingestion stay open (v1 is an internal tool; full accounts are a v2
+item per the PRD).
+
+---
+
+## The Reference Library (cost-saving mechanic)
+
+Generating fresh AI imagery for every deck costs money on every run. The
+library flips that: **generate once, reuse forever.**
+
+- Every space reference used in a generated deck is auto-saved to Vercel Blob,
+  organised into real folders by space —
+  `library/reception/…`, `library/private-cabin/…` — plus design direction.
+- Content is **deduped** (same photo at different sizes stores once), so
+  re-generating decks is effectively free.
+- New decks **pull from the library first** and only fall back to the
+  generator for what's missing; picks rotate per client so decks stay varied.
+- Designer uploads from the swap flow are banked into the library too.
+- Browse, filter, and prune everything at **`/library`**.
+
+When a real AI image-generation engine replaces the built-in pool, its output
+flows through this exact pipeline — the library then directly amortises
+per-image generation spend.
+
 ---
 
 ## What it does (mapped to the PRD)
@@ -59,7 +99,8 @@ The reference decks under `reference/` are excluded from deployments via
 | **AI-image-ready** sourcing (pluggable) | `src/lib/imagery.ts` (curated, license-safe stand-in; swap in a generation API) |
 | **Export to PPTX** | `src/lib/deck/pptx.ts` (pptxgenjs) |
 | **Export to PDF** | `src/lib/deck/pdf.ts` (jsPDF) |
-| **Edit loop** — regenerate / swap any image | `src/components/wizard/Wizard.tsx` |
+| **Edit loop** — regenerate / swap any image | `src/components/wizard/Wizard.tsx` + `SwapModal.tsx` |
+| **Shared reference library** (reuse across clients) | `src/lib/library/*`, `src/app/api/library/*`, `src/app/library/page.tsx` |
 | Live sample output | `src/app/sample/page.tsx` |
 
 ## Architecture
