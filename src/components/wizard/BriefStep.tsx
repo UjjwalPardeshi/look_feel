@@ -193,7 +193,10 @@ export function BriefStep({
                 </span>
                 <button
                   type="button"
-                  onClick={() => onChange({ brandLogo: null })}
+                  onClick={() => {
+                    setLogoError(null);
+                    onChange({ brandLogo: null });
+                  }}
                   aria-label="Remove logo"
                   className="text-ink/40 hover:text-ink"
                 >

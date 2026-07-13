@@ -136,7 +136,7 @@ export async function exportPptx(
       slide.addText(s.dateLabel, {
         x: W - 4.5, y: 6.7, w: 3.88, h: 0.3, fontFace: SANS, fontSize: 10, color: "F3ECE1", align: "right", charSpacing: 1,
       });
-      brandMark(slide, { y: 0.55, dark: true, h: 0.34 });
+      brandMark(slide, { y: 0.62, dark: true, h: 0.34 });
       continue;
     }
 
@@ -153,7 +153,7 @@ export async function exportPptx(
         slide.addText(it.label, { x: M + 1.3, y: y + 0.03, w: 8, h: 0.6, fontFace: SANS, fontSize: 18, color: INK });
         slide.addShape(pptx.ShapeType.line, { x: M, y: y + 0.75, w: 9.5, h: 0, line: { color: LINE, width: 0.75 } });
       });
-      brandMark(slide, { y: 0.7 });
+      brandMark(slide, { y: 0.62 });
       continue;
     }
 
@@ -182,7 +182,7 @@ export async function exportPptx(
         });
       });
       swatchRow(pptx, slide, s.palette, M, 6.75, 0.3, 0.44);
-      brandMark(slide, { right: W - imgW - 0.3, y: 0.66 });
+      brandMark(slide, { right: W - imgW - 0.3, y: 0.62 });
       continue;
     }
 
@@ -214,7 +214,7 @@ export async function exportPptx(
         { text: `${mm.note}\n`, options: { color: SOFT, fontSize: 10 } },
       ]);
       slide.addText(matRuns, { x: sx, y: my + 0.32, w: sw, h: 2.2, fontFace: SANS, lineSpacingMultiple: 1.2, valign: "top" });
-      brandMark(slide, { y: 0.66 });
+      brandMark(slide, { y: 0.62 });
       continue;
     }
 
@@ -244,7 +244,7 @@ export async function exportPptx(
           });
         }
       });
-      brandMark(slide, { y: 0.66 });
+      brandMark(slide, { y: 0.62 });
       continue;
     }
 
@@ -260,7 +260,7 @@ export async function exportPptx(
       });
       slide.addShape(pptx.ShapeType.line, { x: M, y: 5.6, w: 3, h: 0, line: { color: "C9A24B", width: 1.5 } });
       slide.addText(s.contact, { x: M, y: 5.8, w: 10, h: 0.4, fontFace: SANS, fontSize: 12, color: "F3ECE1", charSpacing: 1 });
-      brandMark(slide, { y: 0.6, dark: true, h: 0.34 });
+      brandMark(slide, { y: 0.62, dark: true, h: 0.34 });
       continue;
     }
   }

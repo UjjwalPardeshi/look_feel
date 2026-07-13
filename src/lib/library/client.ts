@@ -98,7 +98,7 @@ export async function uploadToLibrary(
 
 export type DeleteResult = "ok" | "unauthorized" | "error";
 
-export async function deleteFromLibrary(url: string, adminToken?: string): Promise<DeleteResult> {
+export async function deleteFromLibrary(pathname: string, adminToken?: string): Promise<DeleteResult> {
   try {
     const res = await fetch("/api/library", {
       method: "DELETE",
@@ -106,7 +106,7 @@ export async function deleteFromLibrary(url: string, adminToken?: string): Promi
         "content-type": "application/json",
         ...(adminToken ? { "x-library-token": adminToken } : {}),
       },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ pathname }),
     });
     if (res.status === 401) return "unauthorized";
     return res.ok ? "ok" : "error";

@@ -243,7 +243,7 @@ export async function exportPdf(
         const cx = M + ci * (colW / 2 + 6);
         items.forEach((it) => {
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(9.5);
+          doc.setFontSize(fpx(9.5));
           setText(doc, INK);
           const termLines = doc.splitTextToSize(it.term, colW / 2 - 12) as string[];
           doc.text(termLines, cx, yy, { baseline: "top" });
@@ -289,7 +289,7 @@ export async function exportPdf(
       let yy = my + 0.32 * U;
       s.materials.forEach((mm) => {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
+        doc.setFontSize(fpx(10));
         setText(doc, INK);
         doc.text(mm.name, sx, yy, { baseline: "top" });
         yy += adv(10, 1.25);

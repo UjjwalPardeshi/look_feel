@@ -1,43 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LIBRARY_PREFIX } from "@/lib/library/types";
+import { get } from "@vercel/blob";
+import { LIBRARY_PREFIX, parsePathname } from "@/lib/library/types";
 
 export const dynamic = "force-dynamic";
 
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+function blobToken(): string | undefined {
+  const direct = process.env.BLOB_READ_WRITE_TOKEN;
+  if (direct) return direct;
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_READ_WRITE_TOKEN") && value?.startsWith("vercel_blob_rw_")) {
+      return value;
+    }
+  }
+  return undefined;
+}
 
 /**
- * Same-origin proxy for library assets, used by the PPTX/PDF exporters as a
- * fallback if a direct cross-origin fetch of a blob URL is ever blocked.
- * Restricted to our own blob store's library/ folder (SSRF guard).
+ * Streams a library asset out of the *private* Blob store.
+ *
+ * The store is private, so references are never world-readable — every read is
+ * authenticated here with the store credentials. Pathnames are content-addressed
+ * (…--{sha256-16}.jpg), so a given path's bytes never change and the response is
+ * safe to cache immutably at the edge: only the first request per asset actually
+ * hits this function.
  */
 export async function GET(request: NextRequest) {
-  const raw = request.nextUrl.searchParams.get("url") ?? "";
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return NextResponse.json({ error: "url is required" }, { status: 400 });
-  }
-  if (
-    u.protocol !== "https:" ||
-    !u.hostname.endsWith(BLOB_HOST_SUFFIX) ||
-    !u.pathname.slice(1).startsWith(LIBRARY_PREFIX)
-  ) {
+  const pathname = request.nextUrl.searchParams.get("path") ?? "";
+
+  // Hard guard: only well-formed library pathnames, never arbitrary blobs.
+  if (!pathname.startsWith(LIBRARY_PREFIX) || !parsePathname(pathname)) {
     return NextResponse.json({ error: "Not a library asset" }, { status: 400 });
   }
+
   try {
-    const res = await fetch(u.toString());
-    if (!res.ok) {
-      return NextResponse.json({ error: `Upstream ${res.status}` }, { status: 502 });
+    const result = await get(pathname, { access: "private", token: blobToken() });
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return new NextResponse(res.body, {
+    return new NextResponse(result.stream, {
       headers: {
-        "content-type": res.headers.get("content-type") ?? "image/jpeg",
-        "cache-control": "public, max-age=86400",
+        "content-type": result.blob.contentType || "image/jpeg",
+        "cache-control": "public, max-age=31536000, immutable",
       },
     });
   } catch (err) {
-    console.error("library file proxy failed:", err);
-    return NextResponse.json({ error: "Fetch failed" }, { status: 502 });
+    console.error(`library file read failed for ${pathname}:`, err);
+    return NextResponse.json({ error: "Read failed" }, { status: 502 });
   }
 }

@@ -31,18 +31,12 @@ function solidFallback(hex: string): string {
   return canvas.toDataURL("image/jpeg", 0.8);
 }
 
-function isBlobStoreUrl(src: string): boolean {
-  try {
-    return new URL(src).hostname.endsWith(".public.blob.vercel-storage.com");
-  } catch {
-    return false;
-  }
-}
-
 async function fetchAsDataUrl(src: string, timeoutMs: number): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    // Library assets are same-origin (/api/library/file); remote references are
+    // CORS-enabled. One code path covers both.
     const res = await fetch(src, { mode: "cors", signal: controller.signal });
     if (!res.ok) throw new Error(`status ${res.status}`);
     return await blobToDataUrl(await res.blob());
@@ -55,17 +49,8 @@ async function fetchAsDataUrl(src: string, timeoutMs: number): Promise<string> {
 export async function toDataUrl(src: string, fallbackHex = "#d8cdbb"): Promise<string> {
   if (src.startsWith("data:")) return src;
   try {
-    return await fetchAsDataUrl(src, 9000);
+    return await fetchAsDataUrl(src, 12000);
   } catch {
-    // Library assets get a second chance through the same-origin proxy in case
-    // a direct cross-origin fetch of the blob store is ever blocked.
-    if (isBlobStoreUrl(src)) {
-      try {
-        return await fetchAsDataUrl(`/api/library/file?url=${encodeURIComponent(src)}`, 9000);
-      } catch {
-        /* fall through to the solid tile */
-      }
-    }
     // A slow, throttled, or failed image degrades to a solid palette tile so the
     // export always completes instead of hanging on one stuck request.
     return solidFallback(fallbackHex);

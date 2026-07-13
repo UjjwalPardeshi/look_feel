@@ -14,7 +14,11 @@ import type { SpaceCategory } from "../types";
 export type LibrarySource = "generated" | "uploaded";
 
 export interface LibraryImage {
-  /** public blob URL */
+  /**
+   * Same-origin URL the browser/exporters load the image from. The Blob store
+   * is private, so assets are streamed through /api/library/file rather than
+   * exposed as public blob URLs. Content-addressed, hence immutably cacheable.
+   */
   url: string;
   pathname: string;
   category: SpaceCategory;
@@ -52,6 +56,11 @@ export interface IngestResponse {
 }
 
 export const LIBRARY_PREFIX = "library/";
+
+/** Same-origin URL that streams a private library asset. */
+export function libraryAssetUrl(pathname: string): string {
+  return `/api/library/file?path=${encodeURIComponent(pathname)}`;
+}
 
 export const LIBRARY_SOURCES: LibrarySource[] = ["generated", "uploaded"];
 

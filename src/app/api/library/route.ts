@@ -6,6 +6,7 @@ import { STYLE_DIRECTIONS } from "@/lib/styles";
 import {
   buildPathname,
   extForMime,
+  libraryAssetUrl,
   parsePathname,
   LIBRARY_PREFIX,
   LIBRARY_SOURCES,
@@ -26,7 +27,6 @@ const LIST_MAX_PAGES = 10;
 
 // Remote images may only be ingested from these hosts (SSRF guard).
 const ALLOWED_SOURCE_HOSTS = ["images.unsplash.com"];
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
 const VALID_CATEGORIES = new Set(SPACE_TYPES.map((s) => s.category));
 const VALID_STYLES = new Set(STYLE_DIRECTIONS.map((s) => s.id));
@@ -83,7 +83,6 @@ function canonicalSourceUrl(raw: string): string | undefined {
 }
 
 function toLibraryImage(blob: {
-  url: string;
   pathname: string;
   size: number;
   uploadedAt: Date | string;
@@ -92,7 +91,8 @@ function toLibraryImage(blob: {
   if (!meta) return undefined;
   if (!VALID_CATEGORIES.has(meta.category)) return undefined;
   return {
-    url: blob.url,
+    // Private store → always served through our authenticated proxy.
+    url: libraryAssetUrl(blob.pathname),
     pathname: blob.pathname,
     category: meta.category,
     styleId: meta.styleId,
@@ -259,14 +259,16 @@ export async function POST(request: NextRequest) {
       try {
         const data = await p.getBody();
         const blob = await put(p.pathname, data, {
-          access: "public",
+          // The store is private: references are never world-readable, they are
+          // streamed back through /api/library/file.
+          access: "private",
           contentType: p.contentType,
           addRandomSuffix: false,
           allowOverwrite: true,
           token: blobToken(),
         });
         added.push({
-          url: blob.url,
+          url: libraryAssetUrl(blob.pathname),
           pathname: blob.pathname,
           category: p.category,
           styleId: p.styleId,
@@ -317,24 +319,19 @@ export async function DELETE(request: NextRequest) {
   if (adminToken && !adminTokenMatches(request.headers.get("x-library-token"), adminToken)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  let body: { url?: string };
+  let body: { pathname?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  let u: URL;
-  try {
-    u = new URL(body.url ?? "");
-  } catch {
-    return NextResponse.json({ error: "url is required" }, { status: 400 });
-  }
-  // Only our own blob store, only library files.
-  if (!u.hostname.endsWith(BLOB_HOST_SUFFIX) || !u.pathname.slice(1).startsWith(LIBRARY_PREFIX)) {
+  // Only well-formed library pathnames — never an arbitrary blob or URL.
+  const pathname = body.pathname ?? "";
+  if (!pathname.startsWith(LIBRARY_PREFIX) || !parsePathname(pathname)) {
     return NextResponse.json({ error: "Not a library asset" }, { status: 400 });
   }
   try {
-    await del(body.url as string, { token: blobToken() });
+    await del(pathname, { token: blobToken() });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("library delete failed:", err);

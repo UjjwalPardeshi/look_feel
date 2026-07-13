@@ -77,13 +77,13 @@ export function LibraryBrowser() {
     setDeleting(im.pathname);
     try {
       let token = window.localStorage.getItem("lf-library-token") ?? undefined;
-      let result = await deleteFromLibrary(im.url, token);
+      let result = await deleteFromLibrary(im.pathname, token);
       if (result === "unauthorized") {
         // The store is protected with LIBRARY_ADMIN_TOKEN — ask once and retry.
         const entered = window.prompt("This library is protected. Enter the admin token to delete:");
         if (entered) {
           token = entered.trim();
-          result = await deleteFromLibrary(im.url, token);
+          result = await deleteFromLibrary(im.pathname, token);
           if (result === "ok") window.localStorage.setItem("lf-library-token", token);
         }
       }
@@ -121,8 +121,12 @@ export function LibraryBrowser() {
         </p>
         <ol className="mx-auto mt-5 max-w-md list-decimal space-y-2 pl-6 text-left text-[14px] text-ink/70">
           <li>In your Vercel dashboard open <strong>Storage → Create Database → Blob</strong>.</li>
-          <li>Connect the new store to the <strong>look-and-feel</strong> project.</li>
-          <li>Redeploy — the <code className="rounded bg-sand px-1.5 py-0.5 text-[12.5px]">BLOB_READ_WRITE_TOKEN</code> env var is added automatically.</li>
+          <li>Connect the store to this project (Production + Preview).</li>
+          <li>
+            Add a{" "}
+            <code className="rounded bg-sand px-1.5 py-0.5 text-[12.5px]">BLOB_READ_WRITE_TOKEN</code>{" "}
+            env var with the store&rsquo;s read-write token, then redeploy.
+          </li>
         </ol>
         <p className="mt-5 text-[13px] text-ink/50">
           Until then, decks still generate normally from the built-in reference pool.
